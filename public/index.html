@@ -3,34 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <title>Ghost Room</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
   <div id="app">
-
     <h1>👻 Ghost Room</h1>
 
-    <div id="room-controls">
-      <input id="roomId" placeholder="Room ID" />
-      <button onclick="createRoom()">Create Room</button>
-      <button onclick="joinRoom()">Join Room</button>
-    </div>
+    <input id="room" placeholder="Room ID" />
+    <button onclick="joinRoom()">Join</button>
 
-    <div id="chat" class="hidden">
-      <div id="messages"></div>
+    <div id="chat"></div>
 
-      <input id="messageInput" placeholder="Type message..." />
-      <button onclick="sendMessage()">Send</button>
-
-      <button id="panicBtn" onclick="panic()">🚨 Panic</button>
-    </div>
-
+    <input id="message" placeholder="Type a message…" />
+    <button onclick="sendMessage()">Send</button>
   </div>
 
-  <!-- Socket.io client -->
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
 </body>
 </html>
