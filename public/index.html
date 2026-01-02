@@ -3,22 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <title>Ghost Room</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app">
+  <div class="app">
     <h1>👻 Ghost Room</h1>
 
-    <input id="room" placeholder="Room ID" />
-    <button onclick="joinRoom()">Join</button>
+    <button id="createRoomBtn">Create New Room</button>
 
-    <div id="chat"></div>
+    <input
+      id="roomInput"
+      placeholder="Room ID"
+      autocomplete="off"
+    />
+    <button id="joinBtn">Join</button>
 
-    <input id="message" placeholder="Type a message…" />
-    <button onclick="sendMessage()">Send</button>
+    <div id="chat" class="chat-box"></div>
+
+    <input
+      id="messageInput"
+      placeholder="Type a message..."
+      autocomplete="off"
+    />
+    <button id="sendBtn">Send</button>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
 </body>
 </html>
