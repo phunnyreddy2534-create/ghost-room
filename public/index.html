@@ -3,10 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <title>Ghost Room</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
   <div class="container">
     <h1>👻 Ghost Room</h1>
@@ -14,18 +12,10 @@
     <button id="createBtn">Create New Room</button>
 
     <input id="roomInput" placeholder="Room ID" />
+
     <button id="joinBtn">Join</button>
-
-    <div id="chat"></div>
-
-    <input id="messageInput" placeholder="Type a message..." />
-    <button id="sendBtn">Send</button>
   </div>
 
-  <!-- 🔴 REQUIRED: Socket.IO client -->
-  <script src="/socket.io/socket.io.js"></script>
-
-  <!-- Your client logic -->
-  <script src="client.js"></script>
+  <script src="index.js"></script>
 </body>
 </html>
