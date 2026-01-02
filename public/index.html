@@ -3,37 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <title>Ghost Room</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <div class="container">
     <h1>👻 Ghost Room</h1>
 
-    <button id="createRoomBtn">Create New Room</button>
+    <button id="createBtn">Create New Room</button>
 
-    <input id="roomInput" placeholder="Enter Room ID" />
-    <button id="joinRoomBtn">Join Room</button>
+    <input id="roomInput" placeholder="Room ID" />
+    <button id="joinBtn">Join</button>
+
+    <div id="chat"></div>
+
+    <input id="messageInput" placeholder="Type a message..." />
+    <button id="sendBtn">Send</button>
   </div>
 
-  <script>
-    const createBtn = document.getElementById("createRoomBtn");
-    const joinBtn = document.getElementById("joinRoomBtn");
-    const roomInput = document.getElementById("roomInput");
+  <!-- 🔴 REQUIRED: Socket.IO client -->
+  <script src="/socket.io/socket.io.js"></script>
 
-    function generateRoomId() {
-      return Math.random().toString(36).substring(2, 8);
-    }
-
-    createBtn.onclick = () => {
-      const room = generateRoomId();
-      window.location.href = `/room.html?room=${room}`;
-    };
-
-    joinBtn.onclick = () => {
-      const room = roomInput.value.trim();
-      if (!room) return alert("Enter room ID");
-      window.location.href = `/room.html?room=${room}`;
-    };
-  </script>
+  <!-- Your client logic -->
+  <script src="client.js"></script>
 </body>
 </html>
