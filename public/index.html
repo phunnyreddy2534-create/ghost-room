@@ -6,28 +6,34 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app">
+  <div class="container">
     <h1>👻 Ghost Room</h1>
 
     <button id="createRoomBtn">Create New Room</button>
 
-    <input
-      id="roomInput"
-      placeholder="Room ID"
-      autocomplete="off"
-    />
-    <button id="joinBtn">Join</button>
-
-    <div id="chat" class="chat-box"></div>
-
-    <input
-      id="messageInput"
-      placeholder="Type a message..."
-      autocomplete="off"
-    />
-    <button id="sendBtn">Send</button>
+    <input id="roomInput" placeholder="Enter Room ID" />
+    <button id="joinRoomBtn">Join Room</button>
   </div>
 
-  <script src="client.js"></script>
+  <script>
+    const createBtn = document.getElementById("createRoomBtn");
+    const joinBtn = document.getElementById("joinRoomBtn");
+    const roomInput = document.getElementById("roomInput");
+
+    function generateRoomId() {
+      return Math.random().toString(36).substring(2, 8);
+    }
+
+    createBtn.onclick = () => {
+      const room = generateRoomId();
+      window.location.href = `/room.html?room=${room}`;
+    };
+
+    joinBtn.onclick = () => {
+      const room = roomInput.value.trim();
+      if (!room) return alert("Enter room ID");
+      window.location.href = `/room.html?room=${room}`;
+    };
+  </script>
 </body>
 </html>
