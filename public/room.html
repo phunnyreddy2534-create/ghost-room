@@ -2,19 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Ghost Room Chat</title>
+  <title>Ghost Room</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
-    <h2 id="roomTitle"></h2>
+    <h2 id="roomTitle">Ghost Room</h2>
 
-    <div id="chatBox"></div>
+    <div id="chatBox" class="chat-box"></div>
 
-    <input id="messageInput" placeholder="Type a message..." />
-    <button id="sendBtn">Send</button>
+    <div class="input-row">
+      <input id="messageInput" placeholder="Type a message..." autocomplete="off" />
+      <button id="sendBtn">Send</button>
+    </div>
   </div>
 
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="client.js"></script>
 </body>
 </html>
