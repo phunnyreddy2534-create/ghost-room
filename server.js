@@ -6,49 +6,107 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: {
-    origin: "*"
-  }
+  cors: { origin: "*" }
 });
 
-// In-memory room tracking (no database, privacy-first)
+/**
+ * rooms structure:
+ * {
+ *   roomId: {
+ *     creator: socketId,
+ *     users: number,
+ *     messageTTL: ms,
+ *     roomExpiry: timestamp
+ *   }
+ * }
+ */
 const rooms = {};
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  console.log("Connected:", socket.id);
 
-  socket.on("join-room", ({ roomId }) => {
+  // CREATE ROOM
+  socket.on("create-room", ({ roomId, messageTTL, roomTTL }) => {
+    rooms[roomId] = {
+      creator: socket.id,
+      users: 1,
+      messageTTL: messageTTL || 30000, // default 30s
+      roomExpiry: Date.now() + (roomTTL || 10 * 60 * 1000) // default 10 min
+    };
+
     socket.join(roomId);
+    socket.emit("room-created", rooms[roomId]);
+  });
 
-    if (!rooms[roomId]) {
-      rooms[roomId] = { users: 0 };
+  // JOIN ROOM
+  socket.on("join-room", ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room) {
+      socket.emit("room-error", "Room does not exist");
+      return;
     }
 
-    rooms[roomId].users += 1;
+    if (Date.now() > room.roomExpiry) {
+      delete rooms[roomId];
+      socket.emit("room-error", "Room expired");
+      return;
+    }
+
+    socket.join(roomId);
+    room.users += 1;
+    socket.emit("room-joined", room);
     socket.to(roomId).emit("user-joined");
   });
 
+  // SEND MESSAGE (EPHEMERAL)
   socket.on("send-message", ({ roomId, message }) => {
-    // Message is never stored
-    socket.to(roomId).emit("receive-message", {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    io.to(roomId).emit("receive-message", {
       message,
-      timestamp: Date.now()
+      expiresAt: Date.now() + room.messageTTL
     });
   });
 
+  // UPDATE TIMERS (CREATOR ONLY)
+  socket.on("update-room-settings", ({ roomId, messageTTL, roomTTL }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    if (room.creator !== socket.id) return;
+
+    if (messageTTL) room.messageTTL = messageTTL;
+    if (roomTTL) room.roomExpiry = Date.now() + roomTTL;
+
+    io.to(roomId).emit("room-updated", room);
+  });
+
+  // KILL SWITCH / PANIC MODE
+  socket.on("panic", ({ roomId, redirect }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+    if (room.creator !== socket.id) return;
+
+    io.to(roomId).emit("panic", {
+      redirectTo: redirect || "https://www.youtube.com"
+    });
+  });
+
+  // DISCONNECT HANDLING
   socket.on("disconnecting", () => {
     socket.rooms.forEach((roomId) => {
-      if (rooms[roomId]) {
-        rooms[roomId].users -= 1;
-        if (rooms[roomId].users <= 0) {
-          delete rooms[roomId]; // auto-destroy room
-        }
+      const room = rooms[roomId];
+      if (!room) return;
+
+      room.users -= 1;
+      if (room.users <= 0) {
+        delete rooms[roomId];
       }
     });
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    console.log("Disconnected:", socket.id);
   });
 });
 
@@ -58,5 +116,5 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port", PORT);
 });
