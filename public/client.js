@@ -1,30 +1,36 @@
-const params = new URLSearchParams(window.location.search);
-const roomId = params.get("room");
+const roomInput = document.getElementById("roomInput");
+const chatBox = document.getElementById("chat");
+const msgInput = document.getElementById("msg");
 
-const chatBox = document.getElementById("chatBox");
-const messageInput = document.getElementById("messageInput");
-const sendBtn = document.getElementById("sendBtn");
-const roomTitle = document.getElementById("roomTitle");
+let currentRoom = "";
 
-roomTitle.innerText = `Room: ${roomId}`;
-
-function addMessage(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
+async function createRoom() {
+  currentRoom = Math.random().toString(36).substring(2, 8);
+  roomInput.value = currentRoom;
+  joinRoom();
 }
 
-sendBtn.onclick = async () => {
-  const msg = messageInput.value.trim();
-  if (!msg) return;
+async function joinRoom() {
+  currentRoom = roomInput.value.trim();
+  loadMessages();
+}
 
-  addMessage("You: " + msg);
-  messageInput.value = "";
+async function sendMsg() {
+  if (!currentRoom) return;
 
-  await fetch("/api/index.js", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ room: roomId, message: msg })
+  await fetch(`/api?room=${currentRoom}&message=${encodeURIComponent(msgInput.value)}`);
+  msgInput.value = "";
+  loadMessages();
+}
+
+async function loadMessages() {
+  const res = await fetch(`/api?room=${currentRoom}`);
+  const data = await res.json();
+
+  chatBox.innerHTML = "";
+  data.messages.forEach(m => {
+    const div = document.createElement("div");
+    div.textContent = m.text;
+    chatBox.appendChild(div);
   });
-};
+}
