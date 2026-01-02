@@ -7,18 +7,15 @@
 </head>
 <body>
   <div class="container">
-    <h2 id="roomTitle">Ghost Room</h2>
+    <h2 id="roomTitle">Room</h2>
+    <p id="userCount">👥 1 online</p>
 
-    <div id="chatBox" class="chat-box"></div>
+    <div id="chatBox"></div>
 
-    <div class="input-row">
-      <input id="messageInput" placeholder="Type a message..." autocomplete="off" />
-      <button id="sendBtn">Send</button>
-    </div>
+    <input id="messageInput" placeholder="Type a message..." />
+    <button id="sendBtn">Send</button>
   </div>
 
-  <!-- Supabase CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="client.js"></script>
 </body>
 </html>
