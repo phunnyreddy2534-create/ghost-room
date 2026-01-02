@@ -1,77 +1,100 @@
-const socket = io({
-  path: "/api/socket",
-});
+/* ================================
+   SUPABASE CONFIG
+================================ */
+const SUPABASE_URL = "https://ehvusinvfwsaxguuebfc.supabase.co";
+const SUPABASE_KEY = "sb_publishable_4VQ8U9nDCSA9T8wv2oJHRA_q8ANRMZ-";
 
-let currentRoom = null;
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
-const roomInput = document.getElementById("roomInput");
-const joinBtn = document.getElementById("joinBtn");
-const createBtn = document.getElementById("createBtn");
-const chatBox = document.getElementById("chat");
+/* ================================
+   STATE
+================================ */
+const params = new URLSearchParams(window.location.search);
+const roomCode = params.get("room");
+
+const chatBox = document.getElementById("chatBox");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
+const roomTitle = document.getElementById("roomTitle");
 
-// Utility
-function addMessage(text, type = "user") {
+roomTitle.innerText = `Room: ${roomCode}`;
+
+/* ================================
+   UTIL
+================================ */
+function addMessage(text, system = false) {
   const div = document.createElement("div");
-  div.className = type === "system" ? "system-msg" : "chat-msg";
-  div.innerText = text;
+  div.className = system ? "system-msg" : "chat-msg";
+  div.textContent = text;
   chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// Create Room
-createBtn.addEventListener("click", () => {
-  const roomId = Math.random().toString(36).substring(2, 8);
-  roomInput.value = roomId;
-  joinRoom(roomId);
-});
+/* ================================
+   LOAD HISTORY
+================================ */
+async function loadHistory() {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("content")
+    .eq("room_code", roomCode)
+    .order("created_at", { ascending: true })
+    .limit(100);
 
-// Join Room
-joinBtn.addEventListener("click", () => {
-  const roomId = roomInput.value.trim();
-  if (!roomId) return alert("Enter room ID");
-  joinRoom(roomId);
-});
+  if (error) {
+    console.error(error);
+    return;
+  }
 
-function joinRoom(roomId) {
-  currentRoom = roomId;
   chatBox.innerHTML = "";
-  addMessage(`Joined room: ${roomId}`, "system");
-  socket.emit("join-room", roomId);
+  data.forEach((m) => addMessage(m.content));
 }
 
-// Send Message
-sendBtn.addEventListener("click", sendMessage);
-messageInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") sendMessage();
-});
+/* ================================
+   SEND MESSAGE
+================================ */
+async function sendMessage() {
+  const text = messageInput.value.trim();
+  if (!text) return;
 
-function sendMessage() {
-  const msg = messageInput.value.trim();
-  if (!msg || !currentRoom) return;
-
-  socket.emit("message", {
-    roomId: currentRoom,
-    message: msg,
+  await supabase.from("messages").insert({
+    room_code: roomCode,
+    sender: "anon",
+    content: text,
   });
 
   messageInput.value = "";
 }
 
-// Receive history
-socket.on("chat-history", (messages) => {
-  messages.forEach((m) => {
-    addMessage(m.text);
-  });
+sendBtn.addEventListener("click", sendMessage);
+messageInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendMessage();
 });
 
-// Receive new messages
-socket.on("message", (msg) => {
-  addMessage(msg.text);
-});
+/* ================================
+   REALTIME SUBSCRIPTION
+================================ */
+supabase
+  .channel(`room-${roomCode}`)
+  .on(
+    "postgres_changes",
+    {
+      event: "INSERT",
+      schema: "public",
+      table: "messages",
+      filter: `room_code=eq.${roomCode}`,
+    },
+    (payload) => {
+      addMessage(payload.new.content);
+    }
+  )
+  .subscribe();
 
-// System messages
-socket.on("system", (msg) => {
-  addMessage(msg, "system");
-});
+/* ================================
+   INIT
+================================ */
+addMessage("Joined room", true);
+loadHistory();
