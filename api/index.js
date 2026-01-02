@@ -1,25 +1,44 @@
+import { Server } from "socket.io";
+
+let io;
+
 export default function handler(req, res) {
-  global.rooms = global.rooms || {};
-
-  const { room, message } = req.query;
-
-  if (!room) {
-    return res.json({ status: "ok", message: "Ghost Room API is running" });
-  }
-
-  if (!global.rooms[room]) {
-    global.rooms[room] = { messages: [] };
-  }
-
-  if (message) {
-    global.rooms[room].messages.push({
-      text: message,
-      time: Date.now(),
+  if (!res.socket.server.io) {
+    io = new Server(res.socket.server, {
+      path: "/api/socket",
+      cors: {
+        origin: "*",
+      },
     });
+
+    const rooms = {};
+
+    io.on("connection", (socket) => {
+      socket.on("join-room", (roomId) => {
+        socket.join(roomId);
+
+        if (!rooms[roomId]) rooms[roomId] = [];
+
+        socket.emit("chat-history", rooms[roomId]);
+
+        io.to(roomId).emit("system", "A user joined the room");
+      });
+
+      socket.on("message", ({ roomId, message }) => {
+        const msg = {
+          text: message,
+          time: new Date().toISOString(),
+        };
+
+        rooms[roomId].push(msg);
+        if (rooms[roomId].length > 50) rooms[roomId].shift();
+
+        io.to(roomId).emit("message", msg);
+      });
+    });
+
+    res.socket.server.io = io;
   }
 
-  return res.json({
-    room,
-    messages: global.rooms[room].messages,
-  });
+  res.end();
 }
