@@ -1,45 +1,30 @@
-let currentRoom = null;
+const params = new URLSearchParams(window.location.search);
+const roomId = params.get("room");
 
-const roomInput = document.getElementById("roomInput");
-const chatBox = document.getElementById("chat");
+const chatBox = document.getElementById("chatBox");
 const messageInput = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
+const roomTitle = document.getElementById("roomTitle");
 
-document.getElementById("joinBtn").onclick = joinRoom;
-document.getElementById("sendBtn").onclick = sendMessage;
-document.getElementById("createRoomBtn").onclick = createRoom;
+roomTitle.innerText = `Room: ${roomId}`;
 
-function generateRoomId() {
-  return Math.random().toString(36).substring(2, 10);
+function addMessage(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function createRoom() {
-  const roomId = generateRoomId();
-  roomInput.value = roomId;
-  joinRoom();
-}
+sendBtn.onclick = async () => {
+  const msg = messageInput.value.trim();
+  if (!msg) return;
 
-async function joinRoom() {
-  const roomId = roomInput.value.trim();
-  if (!roomId) return alert("Enter Room ID");
+  addMessage("You: " + msg);
+  messageInput.value = "";
 
-  currentRoom = roomId;
-  chatBox.innerHTML = `<p><em>Joined room: ${roomId}</em></p>`;
-}
-
-async function sendMessage() {
-  if (!currentRoom) return alert("Join a room first");
-
-  const text = messageInput.value.trim();
-  if (!text) return;
-
-  const res = await fetch("/api/index.js", {
+  await fetch("/api/index.js", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ room: currentRoom, message: text }),
+    body: JSON.stringify({ room: roomId, message: msg })
   });
-
-  const data = await res.json();
-
-  chatBox.innerHTML += `<p>${data.message}</p>`;
-  messageInput.value = "";
-}
+};
