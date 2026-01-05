@@ -1,68 +1,79 @@
-const SUPABASE_URL = "https://ehvusntvwsxguqebfc.supabase.co";
-const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY";
+// 🔐 SUPABASE CONFIG (replace with your real values)
+const SUPABASE_URL = "https://ehvusinvfwsaxguuebfc.supabase.co";
+const SUPABASE_KEY = "sb_publishable_4VQ8U9nDCSA9T8wv2oJHRA_q8ANRMZ";
 
 const supabase = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
 
+// 🔗 ROOM ID
 const params = new URLSearchParams(window.location.search);
-const room = params.get("room");
+const roomId = params.get("room");
 
-if (!room) {
-  alert("Room not found");
-  location.href = "index.html";
-}
+document.getElementById("roomIdLabel").innerText =
+  roomId ? `Room ID: ${roomId}` : "Unknown Room";
 
-document.getElementById("roomIdLabel").textContent = `Room ID: ${room}`;
+// 📥 DOM
+const msgInput = document.getElementById("msg");
+const messagesDiv = document.getElementById("messages");
+const sendBtn = document.getElementById("sendBtn");
 
-const box = document.getElementById("messages");
-const input = document.getElementById("msg");
-
+// 🚀 SEND MESSAGE
 async function sendMessage() {
-  const text = input.value.trim();
+  const text = msgInput.value.trim();
   if (!text) return;
 
   await supabase.from("messages").insert({
-    room_code: room,
-    content: text
+    room_id: roomId,
+    content: text,
   });
 
-  input.value = "";
-  loadMessages();
+  msgInput.value = "";
 }
 
-async function loadMessages() {
-  const { data } = await supabase
-    .from("messages")
-    .select("content")
-    .eq("room_code", room)
-    .order("created_at", { ascending: true });
+// Enter key support
+msgInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
 
-  box.innerHTML = "";
-  data.forEach(m => {
-    const div = document.createElement("div");
-    div.className = "msg";
-    div.textContent = m.content;
-    box.appendChild(div);
-  });
+sendBtn.addEventListener("click", sendMessage);
 
-  box.scrollTop = box.scrollHeight;
+// 📡 RECEIVE MESSAGES (REAL-TIME)
+supabase
+  .channel("room-" + roomId)
+  .on(
+    "postgres_changes",
+    { event: "INSERT", schema: "public", table: "messages" },
+    (payload) => {
+      if (payload.new.room_id === roomId) {
+        addMessage(payload.new.content);
+      }
+    }
+  )
+  .subscribe();
+
+// 🧱 MESSAGE UI
+function addMessage(text) {
+  const div = document.createElement("div");
+  div.className = "msg";
+  div.innerText = text;
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
+// 🔗 SHARE (FIXED – real mobile share)
 function shareRoom() {
   const url = window.location.href;
+
   if (navigator.share) {
     navigator.share({
       title: "Ghost Room",
-      text: "Join my anonymous Ghost Room",
-      url
+      text: "Join my anonymous room",
+      url,
     });
   } else {
     navigator.clipboard.writeText(url);
-    alert("Room link copied");
+    alert("Room link copied!");
   }
 }
-
-loadMessages();
-setInterval(loadMessages, 3000);
