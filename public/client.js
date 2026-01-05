@@ -1,8 +1,8 @@
 // ===== SUPABASE CONFIG =====
 const SUPABASE_URL = "https://ehvusinvfwsaxguuebfc.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48..."; // keep your full key
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48";
 
-// ✅ NOW THIS WORKS
+// Create client (Supabase v2)
 const supabase = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
@@ -14,7 +14,7 @@ const room = params.get("room");
 
 if (!room) {
   alert("Room ID missing");
-  location.href = "/";
+  window.location.href = "/";
 }
 
 // ===== ELEMENTS =====
@@ -24,6 +24,7 @@ const input = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
 const shareBtn = document.getElementById("shareBtn");
 
+// ✅ FIXED (template literal)
 roomLabel.innerText = `Room ID: ${room}`;
 
 // ===== SEND MESSAGE =====
@@ -39,7 +40,9 @@ sendBtn.addEventListener("click", async () => {
     content: text
   });
 
-  if (error) alert(error.message);
+  if (error) {
+    alert(error.message);
+  }
 });
 
 // ===== REALTIME RECEIVE =====
@@ -65,7 +68,7 @@ supabase
 
 // ===== SHARE =====
 shareBtn.addEventListener("click", async () => {
-  const url = location.href;
+  const url = window.location.href;
   if (navigator.share) {
     await navigator.share({ title: "Ghost Room", url });
   } else {
