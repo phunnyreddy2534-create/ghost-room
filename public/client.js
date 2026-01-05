@@ -1,76 +1,84 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+// ===============================
+// SUPABASE CONFIG
+// ===============================
 
-// 🔑 Supabase config
-const SUPABASE_URL = "https://ehvusinvfwsaxguuebfc.supabase.co";
-const SUPABASE_KEY = "sb_publishable_4VQ8U9nDCSA9T8wv2oJHRA_q8ANRMZ-";
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
+const SUPABASE_KEY = "YOUR_PUBLIC_ANON_KEY";
 
-// DOM
-const chatBox = document.getElementById("chatBox");
-const messageInput = document.getElementById("messageInput");
-const sendBtn = document.getElementById("sendBtn");
-const roomTitle = document.getElementById("roomTitle");
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
-// Get room from URL
+// ===============================
+// ROOM CODE
+// ===============================
+
+// room code passed like: room.html?room=ABC123
 const params = new URLSearchParams(window.location.search);
-const roomId = params.get("room");
+const roomCode = params.get("room");
 
-if (!roomId) {
+if (!roomCode) {
   alert("Invalid room");
-  window.location.href = "/";
+  throw new Error("Room code missing");
 }
 
-roomTitle.innerText = `👻 Room: ${roomId}`;
+// ===============================
+// SEND MESSAGE
+// ===============================
 
-// Add message to UI
-function addMessage(text) {
-  const div = document.createElement("div");
-  div.className = "chat-msg";
-  div.innerText = text;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
+async function sendMessage() {
+  const input = document.getElementById("messageInput");
+  const text = input.value.trim();
 
-// Load old messages
-async function loadMessages() {
-  const { data } = await supabase
+  if (!text) return;
+
+  const { error } = await supabase
     .from("messages")
-    .select("content")
-    .eq("room_code", roomId)
+    .insert({
+      room_code: roomCode,
+      content: text
+    });
+
+  if (error) {
+    console.error("Send error:", error);
+    alert("Message failed");
+  }
+
+  input.value = "";
+}
+
+// ===============================
+// FETCH MESSAGES (POLLING)
+// ===============================
+
+async function fetchMessages() {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("content, created_at")
+    .eq("room_code", roomCode)
     .order("created_at", { ascending: true });
 
-  chatBox.innerHTML = "";
-  data.forEach(m => addMessage(m.content));
-}
+  if (error) {
+    console.error("Fetch error:", error);
+    return;
+  }
 
-// Send message
-sendBtn.onclick = async () => {
-  const msg = messageInput.value.trim();
-  if (!msg) return;
+  const box = document.getElementById("messages");
+  box.innerHTML = "";
 
-  await supabase.from("messages").insert({
-    room_code: roomId,
-    content: msg
+  data.forEach(msg => {
+    const div = document.createElement("div");
+    div.textContent = msg.content;
+    box.appendChild(div);
   });
 
-  messageInput.value = "";
-};
+  box.scrollTop = box.scrollHeight;
+}
 
-// Realtime listener
-supabase
-  .channel("room-" + roomId)
-  .on(
-    "postgres_changes",
-    {
-      event: "INSERT",
-      schema: "public",
-      table: "messages",
-      filter: `room_code=eq.${roomId}`
-    },
-    payload => {
-      addMessage(payload.new.content);
-    }
-  )
-  .subscribe();
+// ===============================
+// START POLLING
+// ===============================
 
-loadMessages();
+fetchMessages();
+setInterval(fetchMessages, 3000);
