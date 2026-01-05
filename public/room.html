@@ -7,7 +7,7 @@
 
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Supabase v2 UMD -->
+  <!-- Supabase v2 (browser safe) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -31,59 +31,46 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ===== SUPABASE CONFIG =====
-  const SUPABASE_URL = "https://ehvusinvfwsaxguuebfc.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48";
-
+  /* ===== SUPABASE ===== */
   const supabase = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
+    "https://ehvusinvfwsaxguuebfc.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
   );
 
-  // ===== UNIQUE CLIENT ID (PER TAB / DEVICE) =====
+  /* ===== ROOM ===== */
+  const room = new URLSearchParams(location.search).get("room");
+  if (!room) location.href = "/";
+
+  document.getElementById("roomId").textContent = "Room ID: " + room;
+
+  const messagesBox = document.getElementById("messages");
+  const input = document.getElementById("msgInput");
+
+  /* ===== UNIQUE CLIENT ID (PER TAB / DEVICE) ===== */
   let clientId = localStorage.getItem("ghost_client_id");
   if (!clientId) {
     clientId = crypto.randomUUID();
     localStorage.setItem("ghost_client_id", clientId);
   }
 
-  // ===== ROOM =====
-  const params = new URLSearchParams(window.location.search);
-  const room = params.get("room");
-
-  if (!room) {
-    alert("Room ID missing");
-    location.href = "/";
-    return;
-  }
-
-  // ===== ELEMENTS =====
-  const roomLabel = document.getElementById("roomId");
-  const messagesBox = document.getElementById("messages");
-  const input = document.getElementById("msgInput");
-  const sendBtn = document.getElementById("sendBtn");
-  const shareBtn = document.getElementById("shareBtn");
-
-  roomLabel.textContent = "Room ID: " + room;
-
-  // ===== HELPER: ADD MESSAGE TO UI =====
-  function addMessage(text, type) {
+  /* ===== UI HELPER ===== */
+  function addMessage(text, isYou) {
     const div = document.createElement("div");
-    div.className = "msg " + (type === "you" ? "you" : "");
+    div.className = isYou ? "msg you" : "msg other";
     div.textContent = text;
     messagesBox.appendChild(div);
     messagesBox.scrollTop = messagesBox.scrollHeight;
   }
 
-  // ===== SEND MESSAGE =====
-  sendBtn.onclick = async () => {
+  /* ===== SEND MESSAGE ===== */
+  document.getElementById("sendBtn").onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
 
     input.value = "";
 
-    // Show immediately (optimistic UI)
-    addMessage(text, "you");
+    // Show immediately on THIS screen
+    addMessage(text, true);
 
     const { error } = await supabase.from("messages").insert({
       room_code: room,
@@ -92,12 +79,10 @@ document.addEventListener("DOMContentLoaded", () => {
       content: text
     });
 
-    if (error) {
-      alert(error.message);
-    }
+    if (error) alert(error.message);
   };
 
-  // ===== RECEIVE MESSAGES (REALTIME) =====
+  /* ===== RECEIVE REALTIME MESSAGES ===== */
   supabase
     .channel("room-" + room)
     .on(
@@ -109,21 +94,20 @@ document.addEventListener("DOMContentLoaded", () => {
         filter: `room_code=eq.${room}`
       },
       payload => {
-        // ❗ Ignore messages sent by THIS tab
+        // Ignore own messages (already shown)
         if (payload.new.client_id === clientId) return;
 
-        addMessage(payload.new.content, "other");
+        addMessage(payload.new.content, false);
       }
     )
     .subscribe();
 
-  // ===== SHARE =====
-  shareBtn.onclick = async () => {
-    const url = location.href;
+  /* ===== SHARE ===== */
+  document.getElementById("shareBtn").onclick = async () => {
     if (navigator.share) {
-      await navigator.share({ title: "Ghost Room", url });
+      await navigator.share({ title: "Ghost Room", url: location.href });
     } else {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(location.href);
       alert("Room link copied");
     }
   };
