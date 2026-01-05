@@ -1,13 +1,14 @@
 // ===== SUPABASE CONFIG =====
 const SUPABASE_URL = "https://ehvusinvfwsaxguuebfc.supabase.co";
-const SUPABASE_KEY = "sb_publishable_4VQ8U9nDCSA9T8wv2oJHRA_q8ANRMZ";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48";
 
+// ✅ CORRECT OBJECT (v2)
 const supabase = window.supabase.createClient(
   SUPABASE_URL,
-  SUPABASE_KEY
+  SUPABASE_ANON_KEY
 );
 
-// ===== ROOM SETUP =====
+// ===== ROOM =====
 const params = new URLSearchParams(window.location.search);
 const room = params.get("room");
 
@@ -16,6 +17,7 @@ if (!room) {
   location.href = "/";
 }
 
+// ===== ELEMENTS =====
 const roomLabel = document.getElementById("roomId");
 const messagesBox = document.getElementById("messages");
 const input = document.getElementById("msgInput");
@@ -40,12 +42,11 @@ sendBtn.addEventListener("click", async () => {
     });
 
   if (error) {
-    console.error(error);
-    alert("Message failed");
+    alert(error.message);
   }
 });
 
-// ===== RECEIVE MESSAGES (REALTIME) =====
+// ===== REALTIME RECEIVE =====
 supabase
   .channel(`room-${room}`)
   .on(
@@ -66,7 +67,7 @@ supabase
   )
   .subscribe();
 
-// ===== SHARE ROOM =====
+// ===== SHARE =====
 shareBtn.addEventListener("click", async () => {
   const url = location.href;
   if (navigator.share) {
