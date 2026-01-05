@@ -1,47 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Ghost Room</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div class="container center">
-  <h1>👻 Ghost Room</h1>
-  <p><small>Anonymous • No Login • Speak Freely</small></p>
+<header class="top">
+  <div class="logo">👻 Ghost Room</div>
+</header>
 
-  <button class="btn" onclick="createRoom()">Create New Room</button>
+<main class="home">
+  <h1>Anonymous. No Login. Speak Freely.</h1>
 
-  <input id="roomId" placeholder="Enter Room ID">
-  <button class="btn secondary" onclick="joinRoom()">Join Room</button>
+  <div class="room-actions">
+    <button onclick="createRoom()">Create New Room</button>
+    <input id="roomInput" placeholder="Enter Room ID" />
+    <button onclick="joinRoom()">Join Room</button>
+  </div>
 
-  <hr style="margin:30px 0;border-color:#222;">
-
-  <h3>Why Ghost Room?</h3>
-  <small>
-    • No accounts, no identity  
-    <br>• Messages are temporary  
-    <br>• Built for honest expression  
-    <br>• Nothing to download  
-  </small>
-
-  <p style="margin-top:20px">
-    <a href="about.html">About & Trust</a>
-  </p>
-</div>
+  <section class="why">
+    <h2>Why Ghost Room?</h2>
+    <ul>
+      <li>No accounts, no identity</li>
+      <li>Temporary anonymous rooms</li>
+      <li>No tracking, no storage</li>
+      <li>Built for honest conversations</li>
+    </ul>
+    <a href="about.html">About & Trust →</a>
+  </section>
+</main>
 
 <script>
 function createRoom() {
   const id = Math.random().toString(36).substring(2, 8);
-  window.location.href = `room.html?room=${id}`;
+  location.href = `room.html?room=${id}`;
 }
 
 function joinRoom() {
-  const id = document.getElementById("roomId").value.trim();
+  const id = document.getElementById("roomInput").value.trim();
   if (!id) return alert("Enter room ID");
-  window.location.href = `room.html?room=${id}`;
+  location.href = `room.html?room=${id}`;
 }
 </script>
 
