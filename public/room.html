@@ -5,36 +5,31 @@
   <title>Ghost Room</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Supabase JS SDK (REQUIRED) -->
+  <!-- ✅ SUPABASE SDK (MUST BE HERE) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-  <!-- Header -->
-  <header class="room-header">
-    <div class="logo">👻 Ghost Room</div>
-    <button id="shareBtn">Share</button>
-  </header>
+<header class="room-header">
+  <div class="logo">👻 Ghost Room</div>
+  <button id="shareBtn">Share</button>
+</header>
 
-  <!-- Room ID -->
-  <div class="room-id" id="roomId"></div>
+<div class="room-id" id="roomId"></div>
 
-  <!-- Messages -->
-  <div class="messages" id="messages">
-    <div class="system">You joined the room</div>
-  </div>
+<div class="messages" id="messages">
+  <div class="system">You joined the room</div>
+</div>
 
-  <!-- Input -->
-  <div class="input-bar">
-    <input id="msgInput" placeholder="Type a message..." autocomplete="off" />
-    <button id="sendBtn">Send</button>
-  </div>
+<div class="input-bar">
+  <input id="msgInput" placeholder="Type a message..." autocomplete="off" />
+  <button id="sendBtn">Send</button>
+</div>
 
-  <!-- Client Logic -->
-  <script src="client.js"></script>
+<!-- ✅ ALL LOGIC HERE -->
+<script src="client.js"></script>
 
 </body>
 </html>
