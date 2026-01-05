@@ -1,5 +1,5 @@
-const SUPABASE_URL = "https://ehvusinvfwsaxguuebfc.supabase.co";
-const SUPABASE_KEY = "sb_publishable_4VQ8U9nDCSA9T8wv2oJHRA_q8ANRMZ";
+const SUPABASE_URL = "https://ehvusntvwsxguqebfc.supabase.co";
+const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY";
 
 const supabase = window.supabase.createClient(
   SUPABASE_URL,
@@ -14,6 +14,8 @@ if (!room) {
   location.href = "index.html";
 }
 
+document.getElementById("roomIdLabel").textContent = `Room ID: ${room}`;
+
 const box = document.getElementById("messages");
 const input = document.getElementById("msg");
 
@@ -27,6 +29,7 @@ async function sendMessage() {
   });
 
   input.value = "";
+  loadMessages();
 }
 
 async function loadMessages() {
@@ -38,10 +41,10 @@ async function loadMessages() {
 
   box.innerHTML = "";
   data.forEach(m => {
-    const d = document.createElement("div");
-    d.className = "msg";
-    d.textContent = m.content;
-    box.appendChild(d);
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.textContent = m.content;
+    box.appendChild(div);
   });
 
   box.scrollTop = box.scrollHeight;
@@ -49,8 +52,16 @@ async function loadMessages() {
 
 function shareRoom() {
   const url = window.location.href;
-  navigator.clipboard.writeText(url);
-  alert("Room link copied");
+  if (navigator.share) {
+    navigator.share({
+      title: "Ghost Room",
+      text: "Join my anonymous Ghost Room",
+      url
+    });
+  } else {
+    navigator.clipboard.writeText(url);
+    alert("Room link copied");
+  }
 }
 
 loadMessages();
