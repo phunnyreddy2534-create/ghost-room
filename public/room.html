@@ -7,7 +7,7 @@
 
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Supabase v2 UMD -->
+  <!-- ✅ Supabase v2 UMD (browser-safe) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   roomLabel.textContent = "Room ID: " + room;
 
-  // ===== SEND =====
+  // ===== SEND MESSAGE (✅ FIXED) =====
   sendBtn.onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
@@ -68,13 +68,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const { error } = await supabase.from("messages").insert({
       room_code: room,
+      sender: "anon",      // ✅ REQUIRED FIX
       content: text
     });
 
-    if (error) alert(error.message);
+    if (error) {
+      alert(error.message);
+    }
   };
 
-  // ===== RECEIVE =====
+  // ===== RECEIVE MESSAGES (REALTIME) =====
   supabase
     .channel("room-" + room)
     .on(
