@@ -1,21 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Ghost Room</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>👻 Ghost Room</h1>
 
-    <button id="createBtn">Create New Room</button>
+<div class="container center">
+  <h1>👻 Ghost Room</h1>
+  <p><small>Anonymous • No Login • Speak Freely</small></p>
 
-    <input id="roomInput" placeholder="Room ID" />
+  <button class="btn" onclick="createRoom()">Create New Room</button>
 
-    <button id="joinBtn">Join</button>
-  </div>
+  <input id="roomId" placeholder="Enter Room ID">
+  <button class="btn secondary" onclick="joinRoom()">Join Room</button>
 
-  <script src="index.js"></script>
+  <hr style="margin:30px 0;border-color:#222;">
+
+  <h3>Why Ghost Room?</h3>
+  <small>
+    • No accounts, no identity  
+    <br>• Messages are temporary  
+    <br>• Built for honest expression  
+    <br>• Nothing to download  
+  </small>
+
+  <p style="margin-top:20px">
+    <a href="about.html">About & Trust</a>
+  </p>
+</div>
+
+<script>
+function createRoom() {
+  const id = Math.random().toString(36).substring(2, 8);
+  window.location.href = `room.html?room=${id}`;
+}
+
+function joinRoom() {
+  const id = document.getElementById("roomId").value.trim();
+  if (!id) return alert("Enter room ID");
+  window.location.href = `room.html?room=${id}`;
+}
+</script>
+
 </body>
 </html>
