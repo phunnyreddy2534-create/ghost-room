@@ -1,9 +1,8 @@
 // ===============================
 // SUPABASE CONFIG
 // ===============================
-
-const SUPABASE_URL = "https://ehvusinvfwsaxguuebfc.supabase.co";
-const SUPABASE_KEY = "sb_publishable_4VQ8U9nDCSA9T8wv2oJHRA_q8ANRMZ-";
+const SUPABASE_URL = "https://ehvusinvfwsaxguuebfc.supabase.co"; // your project URL
+const SUPABASE_KEY = "sb_publishable_4VQ8U9nDCSA9T8wv2oJHRA_q8ANRMZ";       // sb_publishable_...
 
 const supabase = window.supabase.createClient(
   SUPABASE_URL,
@@ -13,45 +12,53 @@ const supabase = window.supabase.createClient(
 // ===============================
 // ROOM CODE
 // ===============================
-
-// room code passed like: room.html?room=ABC123
 const params = new URLSearchParams(window.location.search);
 const roomCode = params.get("room");
 
 if (!roomCode) {
-  alert("Invalid room");
-  throw new Error("Room code missing");
+  alert("Room code missing");
+  throw new Error("No room code");
 }
+
+// ===============================
+// ELEMENTS
+// ===============================
+const messagesBox = document.getElementById("messages");
+const input = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
 
 // ===============================
 // SEND MESSAGE
 // ===============================
-
 async function sendMessage() {
-  const input = document.getElementById("messageInput");
   const text = input.value.trim();
-
   if (!text) return;
 
-  const { error } = await supabase
-    .from("messages")
-    .insert({
-      room_code: roomCode,
-      content: text
-    });
+  const { error } = await supabase.from("messages").insert({
+    room_code: roomCode,
+    content: text
+  });
 
   if (error) {
-    console.error("Send error:", error);
+    console.error(error);
     alert("Message failed");
+    return;
   }
 
   input.value = "";
 }
 
+// Button click (mobile safe)
+sendBtn.addEventListener("click", sendMessage);
+
+// Enter key support
+input.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
+
 // ===============================
 // FETCH MESSAGES (POLLING)
 // ===============================
-
 async function fetchMessages() {
   const { data, error } = await supabase
     .from("messages")
@@ -60,25 +67,24 @@ async function fetchMessages() {
     .order("created_at", { ascending: true });
 
   if (error) {
-    console.error("Fetch error:", error);
+    console.error(error);
     return;
   }
 
-  const box = document.getElementById("messages");
-  box.innerHTML = "";
+  messagesBox.innerHTML = "";
 
   data.forEach(msg => {
     const div = document.createElement("div");
+    div.className = "msg";
     div.textContent = msg.content;
-    box.appendChild(div);
+    messagesBox.appendChild(div);
   });
 
-  box.scrollTop = box.scrollHeight;
+  messagesBox.scrollTop = messagesBox.scrollHeight;
 }
 
 // ===============================
-// START POLLING
+// START
 // ===============================
-
 fetchMessages();
 setInterval(fetchMessages, 3000);
