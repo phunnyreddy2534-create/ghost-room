@@ -1,28 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Ghost Room</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
 
-<div class="chat-header">
+<header class="chat-header">
   <div>
     <div class="title">👻 Ghost Room</div>
     <div class="room-id" id="roomIdLabel"></div>
   </div>
-  <div class="share" onclick="shareRoom()">Share</div>
-</div>
+  <button class="share-btn" onclick="shareRoom()">Share</button>
+</header>
 
-<div id="messages" class="chat-box"></div>
+<main id="messages" class="chat-box"></main>
 
-<div class="chat-input">
-  <input id="msg" placeholder="Type a message…" />
-  <button onclick="sendMessage()">Send</button>
-</div>
+<footer class="chat-input">
+  <input
+    id="msg"
+    type="text"
+    placeholder="Type a message…"
+    autocomplete="off"
+  />
+  <button id="sendBtn">Send</button>
+</footer>
 
 <script src="client.js"></script>
 </body>
