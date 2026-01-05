@@ -1,9 +1,8 @@
 // ===== SUPABASE CONFIG =====
-// 🔴 IMPORTANT: replace with YOUR actual values
 const SUPABASE_URL = "https://ehvusinvfwsaxguuebfc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_4VQ8U9nDCSA9T8wv2oJHRA_q8ANRMZ";
 
-const supabase = supabaseJs.createClient(
+const supabase = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
@@ -26,7 +25,7 @@ const shareBtn = document.getElementById("shareBtn");
 roomLabel.innerText = `Room ID: ${room}`;
 
 // ===== SEND MESSAGE =====
-sendBtn.onclick = async () => {
+sendBtn.addEventListener("click", async () => {
   const text = input.value.trim();
   if (!text) return;
 
@@ -34,23 +33,21 @@ sendBtn.onclick = async () => {
 
   const { error } = await supabase
     .from("messages")
-    .insert([
-      {
-        room_code: room,
-        sender: "anon",
-        content: text
-      }
-    ]);
+    .insert({
+      room_code: room,
+      sender: "anon",
+      content: text
+    });
 
   if (error) {
-    console.error("Insert error:", error.message);
+    console.error(error);
     alert("Message failed");
   }
-};
+});
 
 // ===== RECEIVE MESSAGES (REALTIME) =====
 supabase
-  .channel("room-" + room)
+  .channel(`room-${room}`)
   .on(
     "postgres_changes",
     {
@@ -60,22 +57,17 @@ supabase
       filter: `room_code=eq.${room}`
     },
     payload => {
-      addMessage(payload.new.content);
+      const div = document.createElement("div");
+      div.className = "msg";
+      div.innerText = payload.new.content;
+      messagesBox.appendChild(div);
+      messagesBox.scrollTop = messagesBox.scrollHeight;
     }
   )
   .subscribe();
 
-// ===== UI HELPERS =====
-function addMessage(text) {
-  const div = document.createElement("div");
-  div.className = "msg";
-  div.innerText = text;
-  messagesBox.appendChild(div);
-  messagesBox.scrollTop = messagesBox.scrollHeight;
-}
-
-// ===== SHARE =====
-shareBtn.onclick = async () => {
+// ===== SHARE ROOM =====
+shareBtn.addEventListener("click", async () => {
   const url = location.href;
   if (navigator.share) {
     await navigator.share({ title: "Ghost Room", url });
@@ -83,4 +75,4 @@ shareBtn.onclick = async () => {
     await navigator.clipboard.writeText(url);
     alert("Room link copied");
   }
-};
+});
