@@ -1,55 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Ghost Room</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Supabase JS SDK (REQUIRED) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-<header class="room-header">
-  <div class="logo">👻 Ghost Room</div>
-  <button onclick="shareRoom()">Share</button>
-</header>
+  <!-- Header -->
+  <header class="room-header">
+    <div class="logo">👻 Ghost Room</div>
+    <button id="shareBtn">Share</button>
+  </header>
 
-<div class="room-id" id="roomId"></div>
+  <!-- Room ID -->
+  <div class="room-id" id="roomId"></div>
 
-<div class="messages" id="messages">
-  <div class="system">You joined the room</div>
-</div>
+  <!-- Messages -->
+  <div class="messages" id="messages">
+    <div class="system">You joined the room</div>
+  </div>
 
-<div class="input-bar">
-  <input id="msgInput" placeholder="Type a message..." />
-  <button onclick="sendMsg()">Send</button>
-</div>
+  <!-- Input -->
+  <div class="input-bar">
+    <input id="msgInput" placeholder="Type a message..." autocomplete="off" />
+    <button id="sendBtn">Send</button>
+  </div>
 
-<script>
-const params = new URLSearchParams(location.search);
-const room = params.get("room");
-document.getElementById("roomId").innerText = "Room ID: " + room;
-
-function sendMsg() {
-  const input = document.getElementById("msgInput");
-  const text = input.value.trim();
-  if (!text) return;
-
-  const msg = document.createElement("div");
-  msg.className = "msg you";
-  msg.innerText = text;
-  document.getElementById("messages").appendChild(msg);
-
-  input.value = "";
-  document.getElementById("messages").scrollTop =
-    document.getElementById("messages").scrollHeight;
-}
-
-function shareRoom() {
-  navigator.share
-    ? navigator.share({ url: location.href })
-    : alert("Copy link: " + location.href);
-}
-</script>
+  <!-- Client Logic -->
+  <script src="client.js"></script>
 
 </body>
 </html>
