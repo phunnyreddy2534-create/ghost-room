@@ -2,20 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Ghost Room</title>
-  <link rel="stylesheet" href="style.css" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h2 id="roomTitle">Room</h2>
-    <p id="userCount">👥 1 online</p>
 
-    <div id="chatBox"></div>
+  <h2>👻 Ghost Room</h2>
+  <p>Anonymous. No login. Speak freely.</p>
 
-    <input id="messageInput" placeholder="Type a message..." />
-    <button id="sendBtn">Send</button>
-  </div>
+  <div id="messages" style="border:1px solid #444; height:300px; overflow-y:auto; padding:10px;"></div>
 
-  <script type="module" src="client.js"></script>
+  <input
+    id="messageInput"
+    type="text"
+    placeholder="Type your message..."
+    style="width:80%;"
+  />
+  <button onclick="sendMessage()">Send</button>
+
+  <script src="client.js"></script>
 </body>
 </html>
