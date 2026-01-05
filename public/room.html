@@ -3,31 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <title>Ghost Room</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
 
-<header class="chat-header">
-  <div>
-    <div class="title">👻 Ghost Room</div>
-    <div class="room-id" id="roomIdLabel"></div>
-  </div>
-  <button class="share-btn" onclick="shareRoom()">Share</button>
+<header class="room-header">
+  <div>👻 Ghost Room</div>
+  <button id="shareBtn">Share</button>
 </header>
 
-<main id="messages" class="chat-box"></main>
+<div class="room-id" id="roomId"></div>
 
-<footer class="chat-input">
-  <input
-    id="msg"
-    type="text"
-    placeholder="Type a message…"
-    autocomplete="off"
-  />
+<div id="messages" class="messages">
+  <div class="system">You joined the room</div>
+</div>
+
+<div class="input-bar">
+  <input id="msgInput" placeholder="Type a message…" />
   <button id="sendBtn">Send</button>
-</footer>
+</div>
 
 <script src="client.js"></script>
 </body>
