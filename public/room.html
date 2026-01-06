@@ -48,7 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ===== ROOM ===== */
   const room = new URLSearchParams(location.search).get("room");
   if (!room) location.href = "/";
-
   document.getElementById("roomId").textContent = "Room ID: " + room;
 
   const messagesBox = document.getElementById("messages");
@@ -62,26 +61,14 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("ghost_client_id", clientId);
   }
 
-  /* ===== ACTIVITY TRACKING (NEW) ===== */
+  /* ===== ACTIVITY TRACKING (SAFE) ===== */
   function markActive() {
-    localStorage.setItem("ghost_last_active", Date.now());
+    localStorage.setItem(
+      `ghost_last_active_${room}`,
+      Date.now()
+    );
   }
   markActive();
-
-  /* ===== AUTO CLEANUP (NEW) ===== */
-  async function cleanupOldMessages() {
-    const cutoff = new Date(
-      Date.now() - INACTIVITY_MINUTES * 60 * 1000
-    ).toISOString();
-
-    await supabase
-      .from("messages")
-      .delete()
-      .eq("room_code", room)
-      .lt("created_at", cutoff);
-  }
-
-  cleanupOldMessages();
 
   /* ===== MESSAGE GROUPING + TIMESTAMP ===== */
   let lastSenderId = null;
@@ -112,6 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     messagesBox.appendChild(div);
     messagesBox.scrollTop = messagesBox.scrollHeight;
+
     lastSenderId = senderId;
     markActive();
   }
@@ -158,6 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   input.addEventListener("input", () => {
     markActive();
+
     typingChannel.send({
       type: "broadcast",
       event: "typing",
