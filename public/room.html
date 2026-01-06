@@ -46,20 +46,37 @@ document.addEventListener("DOMContentLoaded", () => {
   const messagesBox = document.getElementById("messages");
   const input = document.getElementById("msgInput");
 
-  /* ===== UNIQUE CLIENT ID (PER TAB / DEVICE) ===== */
+  /* ===== UNIQUE CLIENT ID ===== */
   let clientId = localStorage.getItem("ghost_client_id");
   if (!clientId) {
     clientId = crypto.randomUUID();
     localStorage.setItem("ghost_client_id", clientId);
   }
 
-  /* ===== UI HELPER ===== */
-  function addMessage(text, isYou) {
+  /* ===== 🔥 NEW: TRACK LAST MESSAGE SENDER ===== */
+  let lastSenderId = null;
+
+  /* ===== UI HELPER (UPDATED, NOT REPLACED) ===== */
+  function addMessage(text, senderId) {
+    const isYou = senderId === clientId;
+
     const div = document.createElement("div");
-    div.className = isYou ? "msg you" : "msg other";
+
+    // 🔥 GROUPING LOGIC
+    const grouped = lastSenderId === senderId;
+
+    div.className =
+      "msg " +
+      (isYou ? "you" : "other") +
+      (grouped ? " grouped" : " not-grouped");
+
     div.textContent = text;
+
     messagesBox.appendChild(div);
     messagesBox.scrollTop = messagesBox.scrollHeight;
+
+    // 🔥 REMEMBER LAST SENDER
+    lastSenderId = senderId;
   }
 
   /* ===== SEND MESSAGE ===== */
@@ -69,8 +86,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     input.value = "";
 
-    // Show immediately on THIS screen
-    addMessage(text, true);
+    // Show instantly on THIS tab
+    addMessage(text, clientId);
 
     const { error } = await supabase.from("messages").insert({
       room_code: room,
@@ -82,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (error) alert(error.message);
   };
 
-  /* ===== RECEIVE REALTIME MESSAGES ===== */
+  /* ===== RECEIVE REALTIME ===== */
   supabase
     .channel("room-" + room)
     .on(
@@ -94,10 +111,10 @@ document.addEventListener("DOMContentLoaded", () => {
         filter: `room_code=eq.${room}`
       },
       payload => {
-        // Ignore own messages (already shown)
+        // Ignore own messages
         if (payload.new.client_id === clientId) return;
 
-        addMessage(payload.new.content, false);
+        addMessage(payload.new.content, payload.new.client_id);
       }
     )
     .subscribe();
