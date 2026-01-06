@@ -23,7 +23,7 @@
   <div class="system">You joined the room</div>
 </div>
 
-<!-- ✅ Phase B: Typing Indicator -->
+<!-- Phase B: Typing Indicator -->
 <div id="typingIndicator" class="typing" style="display:none;">
   Someone is typing…
 </div>
@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("ghost_client_id", clientId);
   }
 
-  /* ===== MESSAGE GROUPING ===== */
+  /* ===== MESSAGE GROUPING + TIMESTAMP ===== */
   let lastSenderId = null;
 
   function addMessage(text, senderId) {
@@ -73,7 +73,23 @@ document.addEventListener("DOMContentLoaded", () => {
       (isYou ? "you" : "other") +
       (grouped ? " grouped" : " not-grouped");
 
-    div.textContent = text;
+    const content = document.createElement("div");
+    content.textContent = text;
+    div.appendChild(content);
+
+    // Phase C: timestamp only if NOT grouped
+    if (!grouped) {
+      const time = document.createElement("div");
+      time.className = "time";
+
+      const now = new Date();
+      time.textContent = now.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      div.appendChild(time);
+    }
 
     messagesBox.appendChild(div);
     messagesBox.scrollTop = messagesBox.scrollHeight;
@@ -122,7 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let typingTimeout = null;
   const typingChannel = supabase.channel("typing-" + room);
 
-  input.addEventListener("input", async () => {
+  input.addEventListener("input", () => {
     typingChannel.send({
       type: "broadcast",
       event: "typing",
