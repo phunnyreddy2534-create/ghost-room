@@ -23,7 +23,7 @@
   <div class="system">You joined the room</div>
 </div>
 
-<!-- Phase B: Typing Indicator -->
+<!-- Typing Indicator -->
 <div id="typingIndicator" class="typing" style="display:none;">
   Someone is typing…
 </div>
@@ -42,6 +42,9 @@ document.addEventListener("DOMContentLoaded", () => {
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
   );
 
+  /* ===== CONFIG ===== */
+  const INACTIVITY_MINUTES = 30;
+
   /* ===== ROOM ===== */
   const room = new URLSearchParams(location.search).get("room");
   if (!room) location.href = "/";
@@ -52,12 +55,33 @@ document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("msgInput");
   const typingEl = document.getElementById("typingIndicator");
 
-  /* ===== UNIQUE CLIENT ID ===== */
+  /* ===== CLIENT ID ===== */
   let clientId = localStorage.getItem("ghost_client_id");
   if (!clientId) {
     clientId = crypto.randomUUID();
     localStorage.setItem("ghost_client_id", clientId);
   }
+
+  /* ===== ACTIVITY TRACKING (NEW) ===== */
+  function markActive() {
+    localStorage.setItem("ghost_last_active", Date.now());
+  }
+  markActive();
+
+  /* ===== AUTO CLEANUP (NEW) ===== */
+  async function cleanupOldMessages() {
+    const cutoff = new Date(
+      Date.now() - INACTIVITY_MINUTES * 60 * 1000
+    ).toISOString();
+
+    await supabase
+      .from("messages")
+      .delete()
+      .eq("room_code", room)
+      .lt("created_at", cutoff);
+  }
+
+  cleanupOldMessages();
 
   /* ===== MESSAGE GROUPING + TIMESTAMP ===== */
   let lastSenderId = null;
@@ -65,36 +89,31 @@ document.addEventListener("DOMContentLoaded", () => {
   function addMessage(text, senderId) {
     const isYou = senderId === clientId;
     const div = document.createElement("div");
-
     const grouped = lastSenderId === senderId;
 
     div.className =
       "msg " +
       (isYou ? "you" : "other") +
-      (grouped ? " grouped" : " not-grouped");
+      (grouped ? " grouped" : "");
 
     const content = document.createElement("div");
     content.textContent = text;
     div.appendChild(content);
 
-    // Phase C: timestamp only if NOT grouped
     if (!grouped) {
       const time = document.createElement("div");
       time.className = "time";
-
-      const now = new Date();
-      time.textContent = now.toLocaleTimeString([], {
+      time.textContent = new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit"
       });
-
       div.appendChild(time);
     }
 
     messagesBox.appendChild(div);
     messagesBox.scrollTop = messagesBox.scrollHeight;
-
     lastSenderId = senderId;
+    markActive();
   }
 
   /* ===== SEND MESSAGE ===== */
@@ -103,7 +122,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!text) return;
 
     input.value = "";
-
     addMessage(text, clientId);
 
     const { error } = await supabase.from("messages").insert({
@@ -134,11 +152,12 @@ document.addEventListener("DOMContentLoaded", () => {
     )
     .subscribe();
 
-  /* ===== Phase B: TYPING INDICATOR ===== */
+  /* ===== TYPING INDICATOR ===== */
   let typingTimeout = null;
   const typingChannel = supabase.channel("typing-" + room);
 
   input.addEventListener("input", () => {
+    markActive();
     typingChannel.send({
       type: "broadcast",
       event: "typing",
