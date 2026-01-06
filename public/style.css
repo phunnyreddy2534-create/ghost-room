@@ -28,7 +28,7 @@ body {
   font-weight: 600;
 }
 
-/* ===== BUTTONS ===== */
+/* ===== BUTTON ===== */
 button {
   background: linear-gradient(135deg, #5b5bff, #7b7bff);
   border: none;
@@ -58,31 +58,38 @@ button:active {
   padding: 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
 /* ===== MESSAGE BUBBLES ===== */
 .msg {
   max-width: 78%;
   padding: 12px 14px;
-  border-radius: 16px;
-  line-height: 1.45;
   font-size: 14px;
-  animation: pop 0.18s ease-out;
+  line-height: 1.45;
+  animation: pop 0.15s ease-out;
 }
 
 /* incoming */
 .msg.other {
   align-self: flex-start;
   background: #1c1c2a;
-  border-bottom-left-radius: 6px;
+  border-radius: 16px 16px 16px 6px;
 }
 
 /* outgoing */
 .msg.you {
   align-self: flex-end;
   background: linear-gradient(135deg, #5b5bff, #7b7bff);
-  border-bottom-right-radius: 6px;
+  border-radius: 16px 16px 6px 16px;
+}
+
+/* ===== GROUPING MAGIC ===== */
+.msg.grouped {
+  margin-top: 3px;
+}
+
+.msg.not-grouped {
+  margin-top: 10px;
 }
 
 /* ===== SYSTEM ===== */
@@ -114,7 +121,7 @@ button:active {
 /* ===== ANIMATION ===== */
 @keyframes pop {
   from {
-    transform: scale(0.95);
+    transform: scale(0.96);
     opacity: 0;
   }
   to {
