@@ -7,7 +7,7 @@
 
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Supabase v2 (browser safe) -->
+  <!-- Supabase v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -23,7 +23,6 @@
   <div class="system">You joined the room</div>
 </div>
 
-<!-- Typing Indicator -->
 <div id="typingIndicator" class="typing" style="display:none;">
   Someone is typing…
 </div>
@@ -34,7 +33,7 @@
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
   /* ===== SUPABASE ===== */
   const supabase = window.supabase.createClient(
@@ -42,12 +41,12 @@ document.addEventListener("DOMContentLoaded", () => {
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
   );
 
-  /* ===== CONFIG ===== */
-  const INACTIVITY_MINUTES = 30;
+  const EXPIRY_MINUTES = 23;
 
   /* ===== ROOM ===== */
   const room = new URLSearchParams(location.search).get("room");
   if (!room) location.href = "/";
+
   document.getElementById("roomId").textContent = "Room ID: " + room;
 
   const messagesBox = document.getElementById("messages");
@@ -61,27 +60,41 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("ghost_client_id", clientId);
   }
 
-  /* ===== ACTIVITY TRACKING (SAFE) ===== */
-  function markActive() {
-    localStorage.setItem(
-      `ghost_last_active_${room}`,
-      Date.now()
-    );
-  }
-  markActive();
+  /* ===== ROOM CHECK / CREATE ===== */
+  const { data: roomData } = await supabase
+    .from("rooms")
+    .select("*")
+    .eq("room_code", room)
+    .single();
 
-  /* ===== MESSAGE GROUPING + TIMESTAMP ===== */
+  if (roomData?.expired) {
+    alert("Room expired. Create a new room.");
+    location.href = "/";
+    return;
+  }
+
+  if (!roomData) {
+    await supabase.from("rooms").insert({
+      room_code: room,
+      created_by: clientId
+    });
+  }
+
+  /* ===== LOAD MESSAGE HISTORY ===== */
+  const { data: history } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("room_code", room)
+    .order("created_at", { ascending: true });
+
   let lastSenderId = null;
 
-  function addMessage(text, senderId) {
+  function addMessage(text, senderId, timeStr) {
     const isYou = senderId === clientId;
-    const div = document.createElement("div");
     const grouped = lastSenderId === senderId;
 
-    div.className =
-      "msg " +
-      (isYou ? "you" : "other") +
-      (grouped ? " grouped" : "");
+    const div = document.createElement("div");
+    div.className = "msg " + (isYou ? "you" : "other") + (grouped ? " grouped" : "");
 
     const content = document.createElement("div");
     content.textContent = text;
@@ -90,19 +103,31 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!grouped) {
       const time = document.createElement("div");
       time.className = "time";
-      time.textContent = new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+      time.textContent = timeStr;
       div.appendChild(time);
     }
 
     messagesBox.appendChild(div);
     messagesBox.scrollTop = messagesBox.scrollHeight;
-
     lastSenderId = senderId;
-    markActive();
   }
+
+  history?.forEach(m =>
+    addMessage(
+      m.content,
+      m.client_id,
+      new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    )
+  );
+
+  /* ===== UPDATE ACTIVITY ===== */
+  async function markActive() {
+    await supabase
+      .from("rooms")
+      .update({ last_active: new Date().toISOString() })
+      .eq("room_code", room);
+  }
+  markActive();
 
   /* ===== SEND MESSAGE ===== */
   document.getElementById("sendBtn").onclick = async () => {
@@ -110,76 +135,64 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!text) return;
 
     input.value = "";
-    addMessage(text, clientId);
+    addMessage(text, clientId, new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
 
-    const { error } = await supabase.from("messages").insert({
+    await supabase.from("messages").insert({
       room_code: room,
-      sender: "anon",
       client_id: clientId,
+      sender: "anon",
       content: text
     });
 
-    if (error) alert(error.message);
+    markActive();
   };
 
-  /* ===== RECEIVE MESSAGES ===== */
+  /* ===== RECEIVE REALTIME ===== */
   supabase
     .channel("room-" + room)
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-        filter: `room_code=eq.${room}`
-      },
-      payload => {
-        if (payload.new.client_id === clientId) return;
-        addMessage(payload.new.content, payload.new.client_id);
-      }
-    )
+    .on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "messages",
+      filter: `room_code=eq.${room}`
+    }, payload => {
+      if (payload.new.client_id === clientId) return;
+      addMessage(
+        payload.new.content,
+        payload.new.client_id,
+        new Date(payload.new.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      );
+    })
     .subscribe();
 
-  /* ===== TYPING INDICATOR ===== */
-  let typingTimeout = null;
+  /* ===== TYPING ===== */
   const typingChannel = supabase.channel("typing-" + room);
+  let typingTimeout;
 
   input.addEventListener("input", () => {
     markActive();
-
-    typingChannel.send({
-      type: "broadcast",
-      event: "typing",
-      payload: { client_id: clientId }
-    });
-
+    typingChannel.send({ type: "broadcast", event: "typing", payload: { id: clientId } });
     clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-      typingChannel.send({
-        type: "broadcast",
-        event: "stop_typing",
-        payload: { client_id: clientId }
-      });
-    }, 2000);
+    typingTimeout = setTimeout(() =>
+      typingChannel.send({ type: "broadcast", event: "stop", payload: { id: clientId } }), 2000
+    );
   });
 
   typingChannel
-    .on("broadcast", { event: "typing" }, ({ payload }) => {
-      if (payload.client_id === clientId) return;
-      typingEl.style.display = "block";
+    .on("broadcast", { event: "typing" }, e => {
+      if (e.payload.id !== clientId) typingEl.style.display = "block";
     })
-    .on("broadcast", { event: "stop_typing" }, ({ payload }) => {
-      if (payload.client_id === clientId) return;
-      typingEl.style.display = "none";
+    .on("broadcast", { event: "stop" }, e => {
+      if (e.payload.id !== clientId) typingEl.style.display = "none";
     })
     .subscribe();
 
   /* ===== SHARE ===== */
   document.getElementById("shareBtn").onclick = async () => {
     if (navigator.share) {
-      await navigator.share({ title: "Ghost Room", url: location.href });
+      navigator.share({ title: "Ghost Room", url: location.href });
     } else {
-      await navigator.clipboard.writeText(location.href);
+      navigator.clipboard.writeText(location.href);
       alert("Room link copied");
     }
   };
