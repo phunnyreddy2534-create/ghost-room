@@ -136,3 +136,14 @@ button:active {
   margin: 6px 12px;
   font-style: italic;
 }
+/* ===== TIMESTAMP ===== */
+.time {
+  font-size: 11px;
+  opacity: 0.45;
+  margin-top: 4px;
+  text-align: right;
+}
+
+.msg.other .time {
+  text-align: left;
+}
