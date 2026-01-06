@@ -147,3 +147,20 @@ button:active {
 .msg.other .time {
   text-align: left;
 }
+.attach-btn {
+  font-size: 18px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chat-image {
+  max-width: 220px;
+  border-radius: 12px;
+  display: block;
+}
+
+.file-link {
+  color: #cfd3ff;
+  text-decoration: underline;
+  font-size: 14px;
+}
