@@ -129,3 +129,10 @@ button:active {
     opacity: 1;
   }
 }
+/* ===== TYPING INDICATOR ===== */
+.typing {
+  font-size: 12px;
+  opacity: 0.5;
+  margin: 6px 12px;
+  font-style: italic;
+}
