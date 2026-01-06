@@ -4,17 +4,18 @@
   <meta charset="UTF-8" />
   <title>Ghost Room</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Supabase v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
 <header class="room-header">
   <div class="logo">👻 Ghost Room</div>
-  <button id="shareBtn">Share</button>
+  <div>
+    <button id="exitBtn">Exit</button>
+    <button id="shareBtn">Share</button>
+  </div>
 </header>
 
 <div class="room-id" id="roomId"></div>
@@ -46,7 +47,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   /* ===== ROOM ===== */
   const room = new URLSearchParams(location.search).get("room");
   if (!room) location.href = "/";
-
   document.getElementById("roomId").textContent = "Room ID: " + room;
 
   const messagesBox = document.getElementById("messages");
@@ -60,32 +60,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     localStorage.setItem("ghost_client_id", clientId);
   }
 
-  /* ===== ROOM CHECK / CREATE ===== */
+  /* ===== AUTO-EXPIRE CHECK (CRITICAL FIX) ===== */
+  await supabase.rpc("expire_old_rooms");
+
+  /* ===== ROOM CHECK ===== */
   const { data: roomData } = await supabase
     .from("rooms")
-    .select("*")
+    .select("expired")
     .eq("room_code", room)
     .single();
-
-  if (roomData?.expired) {
-    alert("Room expired. Create a new room.");
-    location.href = "/";
-    return;
-  }
 
   if (!roomData) {
     await supabase.from("rooms").insert({
       room_code: room,
       created_by: clientId
     });
+  } else if (roomData.expired) {
+    document.body.innerHTML = `
+      <div style="color:white;text-align:center;margin-top:40vh;">
+        <h2>👻 Room Expired</h2>
+        <p>This room is no longer active.</p>
+        <a href="/" style="color:#7b7bff;">Create New Room</a>
+      </div>
+    `;
+    return;
   }
 
-  /* ===== LOAD MESSAGE HISTORY ===== */
+  /* ===== LOAD HISTORY ===== */
   const { data: history } = await supabase
     .from("messages")
     .select("*")
     .eq("room_code", room)
-    .order("created_at", { ascending: true });
+    .order("created_at");
 
   let lastSenderId = null;
 
@@ -120,36 +126,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     )
   );
 
-  /* ===== UPDATE ACTIVITY ===== */
+  /* ===== ACTIVITY HEARTBEAT ===== */
   async function markActive() {
     await supabase
       .from("rooms")
       .update({ last_active: new Date().toISOString() })
-      .eq("room_code", room);
+      .eq("room_code", room)
+      .eq("expired", false);
   }
-  markActive();
 
-  /* ===== SEND MESSAGE ===== */
+  markActive();
+  setInterval(markActive, 60000); // every 1 min
+
+  /* ===== SEND ===== */
   document.getElementById("sendBtn").onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
-
     input.value = "";
+
     addMessage(text, clientId, new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
 
     await supabase.from("messages").insert({
       room_code: room,
       client_id: clientId,
-      sender: "anon",
       content: text
     });
 
     markActive();
   };
 
-  /* ===== RECEIVE REALTIME ===== */
-  supabase
-    .channel("room-" + room)
+  /* ===== REALTIME ===== */
+  supabase.channel("room-" + room)
     .on("postgres_changes", {
       event: "INSERT",
       schema: "public",
@@ -187,12 +194,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
     .subscribe();
 
+  /* ===== EXIT BUTTON ===== */
+  document.getElementById("exitBtn").onclick = () => {
+    location.href = "/";
+  };
+
   /* ===== SHARE ===== */
   document.getElementById("shareBtn").onclick = async () => {
     if (navigator.share) {
       navigator.share({ title: "Ghost Room", url: location.href });
     } else {
-      navigator.clipboard.writeText(location.href);
+      await navigator.clipboard.writeText(location.href);
       alert("Room link copied");
     }
   };
