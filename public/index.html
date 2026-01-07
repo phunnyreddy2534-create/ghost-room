@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Ghost Room</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8" />
+<title>Ghost Room</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -16,7 +16,7 @@
   <div class="logo">👻 Ghost Room</div>
 </header>
 
-<main class="home">
+<main class="home" id="home">
   <h1>Anonymous. No Login. Speak Freely.</h1>
   <p>Private rooms that vanish without a trace.</p>
 
@@ -24,8 +24,6 @@
     <button id="createBtn" class="primary-btn">Create New Room</button>
     <button id="joinOpenBtn" class="secondary-btn">Join Room</button>
   </div>
-
-  <div id="homeMessage"></div>
 
   <section class="why">
     <h2>Why Ghost Room?</h2>
@@ -36,28 +34,20 @@
       <li>💬 Honest conversations</li>
     </ul>
   </section>
-
-  <p class="about-link">
-    <a href="about.html">About, Vision & Trust →</a>
-  </p>
 </main>
 
 <!-- CREATE MODAL -->
 <div id="createModal" class="modal hidden">
-  <div class="premium-card">
+  <div class="glass-card">
+
     <h2>👻 Create Ghost Room</h2>
     <p class="subtitle">Private • Temporary • Anonymous</p>
 
-    <div class="option">
-      ⏳ <strong>Room Expiry</strong>
-      <select id="expirySelect">
-        <option value="30">30 minutes</option>
-        <option value="60">1 hour</option>
-        <option value="1440">24 hours</option>
-      </select>
+    <div class="expiry-pills">
+      <button data-min="30" class="pill active">30 min</button>
+      <button data-min="60" class="pill">1 hour</button>
+      <button data-min="1440" class="pill">24 hours</button>
     </div>
-
-    <div class="option locked">⚙️ Custom Rules (Coming Soon)</div>
 
     <label class="agree">
       <input type="checkbox" id="agreeRules">
@@ -68,16 +58,16 @@
       <button id="cancelCreate" class="ghost-btn">Cancel</button>
       <button id="confirmCreate" class="primary-btn">Create Room</button>
     </div>
+
   </div>
 </div>
 
 <!-- JOIN MODAL -->
 <div id="joinModal" class="modal hidden">
-  <div class="premium-card">
+  <div class="glass-card">
+
     <h2>🔐 Join Ghost Room</h2>
     <p class="subtitle">Enter quietly</p>
-
-    <button class="ghost-btn" disabled>📷 Scan QR (Coming Soon)</button>
 
     <input id="joinCode" placeholder="Enter Room Code" />
 
@@ -85,6 +75,7 @@
       <button id="cancelJoin" class="ghost-btn">Cancel</button>
       <button id="confirmJoin" class="primary-btn">Join Room</button>
     </div>
+
   </div>
 </div>
 
@@ -94,51 +85,105 @@ const supabaseClient = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
 );
 
-function showHomeMessage(msg){
-  document.getElementById("homeMessage").textContent = msg;
-}
+let expiryMinutes = 30;
 
-async function createRoom(){
+/* UI STATE */
+const home = document.getElementById("home");
+const createModal = document.getElementById("createModal");
+const joinModal = document.getElementById("joinModal");
+
+/* EXPIRY SELECTION */
+document.querySelectorAll(".pill").forEach(p => {
+  p.onclick = () => {
+    document.querySelectorAll(".pill").forEach(x => x.classList.remove("active"));
+    p.classList.add("active");
+    expiryMinutes = parseInt(p.dataset.min);
+  };
+});
+
+/* CREATE */
+confirmCreate.onclick = async () => {
+  if (!agreeRules.checked) {
+    alert("Accept the rules");
+    return;
+  }
+
   const id = Math.random().toString(36).substring(2,8);
-  const expiryMinutes = parseInt(document.getElementById("expirySelect").value, 10);
+  const expiresAt = new Date(Date.now() + expiryMinutes * 60000).toISOString();
 
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + expiryMinutes * 60000);
+  await supabaseClient.from("rooms").insert([{
+    room_code: id,
+    expired: false,
+    expires_at: expiresAt
+  }]);
 
-  showHomeMessage("Creating secure room…");
+  location.href = `room.html?room=${id}`;
+};
 
-  try{
-    await supabaseClient.from("rooms").insert([{
-      room_code: id,
-      expired: false,
-      expiry_minutes: expiryMinutes,
-      expires_at: expiresAt.toISOString(),
-      created_at: now.toISOString()
-    }]);
-  }catch(e){}
+/* MODAL TOGGLES */
+createBtn.onclick = () => toggle(createModal, true);
+cancelCreate.onclick = () => toggle(createModal, false);
 
-  window.location.href = `room.html?room=${id}`;
+joinOpenBtn.onclick = () => toggle(joinModal, true);
+cancelJoin.onclick = () => toggle(joinModal, false);
+
+confirmJoin.onclick = () => {
+  if (!joinCode.value.trim()) return;
+  location.href = `room.html?room=${joinCode.value.trim()}`;
+};
+
+function toggle(modal, show){
+  modal.classList.toggle("hidden", !show);
+  document.body.style.overflow = show ? "hidden" : "";
+}
+</script>
+
+<style>
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(14px);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+.hidden{display:none}
+
+.glass-card{
+  width:90%;
+  max-width:380px;
+  background:rgba(20,20,35,.85);
+  backdrop-filter:blur(20px);
+  border-radius:26px;
+  padding:22px;
+  animation:fade .25s ease;
 }
 
-/* MODAL HANDLERS */
-createBtn.onclick = ()=>createModal.classList.remove("hidden");
-cancelCreate.onclick = ()=>createModal.classList.add("hidden");
+@keyframes fade{
+  from{opacity:0;transform:scale(.96)}
+  to{opacity:1;transform:scale(1)}
+}
 
-confirmCreate.onclick = ()=>{
-  if(!agreeRules.checked){ alert("Accept rules"); return; }
-  createModal.classList.add("hidden");
-  createRoom();
-};
-
-joinOpenBtn.onclick = ()=>joinModal.classList.remove("hidden");
-cancelJoin.onclick = ()=>joinModal.classList.add("hidden");
-
-confirmJoin.onclick = ()=>{
-  const code = joinCode.value.trim();
-  if(!code){ alert("Enter room code"); return; }
-  window.location.href = `room.html?room=${code}`;
-};
-</script>
+.expiry-pills{
+  display:flex;
+  gap:10px;
+  margin:16px 0;
+}
+.pill{
+  flex:1;
+  padding:10px;
+  border-radius:14px;
+  border:none;
+  background:#1b1b2a;
+  color:#aaa;
+}
+.pill.active{
+  background:linear-gradient(135deg,#6d5dfc,#9b8cff);
+  color:white;
+}
+</style>
 
 </body>
 </html>
