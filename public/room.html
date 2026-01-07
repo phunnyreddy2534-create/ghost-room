@@ -24,10 +24,6 @@
   <div class="system">You joined the room</div>
 </div>
 
-<div id="typingIndicator" class="typing" style="display:none;">
-  Someone is typing…
-</div>
-
 <div class="input-bar">
   <input id="msgInput" placeholder="Type a message..." autocomplete="off" />
   <button id="sendBtn">Send</button>
@@ -50,21 +46,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   const messagesBox = document.getElementById("messages");
   const input = document.getElementById("msgInput");
 
-  /* ===== CLIENT ID (🔥 FIXED – SESSION ONLY) ===== */
+  /* ===== CLIENT ID ===== */
   let clientId = sessionStorage.getItem("ghost_client_id");
   if (!clientId) {
     clientId = crypto.randomUUID();
     sessionStorage.setItem("ghost_client_id", clientId);
   }
 
-  /* ===== ADD MESSAGE (UI) ===== */
+  /* ===== UI ADD ===== */
   function addMessage(text, sender, time) {
     const div = document.createElement("div");
     div.className = "msg " + (sender === clientId ? "you" : "other");
-    div.innerHTML = `
-      <div>${text}</div>
-      <div class="time">${time}</div>
-    `;
+    div.innerHTML = `<div>${text}</div><div class="time">${time}</div>`;
     messagesBox.appendChild(div);
     messagesBox.scrollTop = messagesBox.scrollHeight;
   }
@@ -76,74 +69,83 @@ document.addEventListener("DOMContentLoaded", async () => {
     .eq("room_code", room)
     .order("created_at");
 
-  history?.forEach(m => {
+  history?.forEach(m =>
     addMessage(
       m.content,
       m.client_id,
-      new Date(m.created_at).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      })
-    );
-  });
+      new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    )
+  );
 
-  /* ===== SEND MESSAGE ===== */
+  /* ===== CHANNELS ===== */
+  const roomChannel = supabase.channel(`room-${room}`);
+  const fallbackChannel = supabase.channel(`fallback-${room}`);
+
+  /* ===== SEND ===== */
   document.getElementById("sendBtn").onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
 
-    /* show instantly */
-    addMessage(
-      text,
-      clientId,
-      new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      })
-    );
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-    /* save to DB */
+    addMessage(text, clientId, time);
+
     await supabase.from("messages").insert({
       room_code: room,
       client_id: clientId,
       content: text
     });
+
+    /* 🔥 FALLBACK BROADCAST */
+    fallbackChannel.send({
+      type: "broadcast",
+      event: "msg",
+      payload: { text, sender: clientId, time }
+    });
   };
 
-  /* ===== REALTIME ===== */
-  const channel = supabase.channel(`room-${room}`);
-
-  channel.on(
+  /* ===== REALTIME PRIMARY ===== */
+  roomChannel.on(
     "postgres_changes",
-    {
-      event: "INSERT",
-      schema: "public",
-      table: "messages",
-      filter: `room_code=eq.${room}`
-    },
+    { event: "INSERT", schema: "public", table: "messages", filter: `room_code=eq.${room}` },
     payload => {
-      if (payload.new.client_id === clientId) return; // prevent duplicate
+      if (payload.new.client_id === clientId) return;
       addMessage(
         payload.new.content,
         payload.new.client_id,
-        new Date(payload.new.created_at).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit"
-        })
+        new Date(payload.new.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       );
     }
   );
 
-  await channel.subscribe();
+  /* ===== FALLBACK LISTENER ===== */
+  fallbackChannel.on("broadcast", { event: "msg" }, e => {
+    if (e.payload.sender === clientId) return;
+    addMessage(e.payload.text, e.payload.sender, e.payload.time);
+  });
 
-  /* ===== EXIT ===== */
-  document.getElementById("exitBtn").onclick = () => location.href = "/";
+  await roomChannel.subscribe();
+  await fallbackChannel.subscribe();
+
+  /* ===== EXIT CONFIRM ===== */
+  document.getElementById("exitBtn").onclick = () => {
+    if (confirm(
+      "Your messages will be deleted within 23 minutes.\n" +
+      "This room will expire automatically.\n\n" +
+      "Thank you for using Ghost Room 👻"
+    )) {
+      location.href = "/";
+    }
+  };
 
   /* ===== SHARE ===== */
   document.getElementById("shareBtn").onclick = async () => {
-    await navigator.clipboard.writeText(location.href);
-    alert("Room link copied");
+    if (navigator.share) {
+      navigator.share({ title: "Ghost Room", url: location.href });
+    } else {
+      await navigator.clipboard.writeText(location.href);
+    }
   };
 
 });
