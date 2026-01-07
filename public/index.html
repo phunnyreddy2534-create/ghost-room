@@ -5,13 +5,9 @@
   <title>Ghost Room</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Existing CSS (kept) -->
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Supabase v1 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1"></script>
 
-  <!-- Premium Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
@@ -24,19 +20,12 @@
 <main class="home">
   <h1>Anonymous. No Login. Speak Freely.</h1>
   <p>
-    Create private, anonymous rooms.  
-    No identity. No history. No trace.
+    Private rooms that vanish without a trace.
   </p>
 
   <div class="room-actions">
-    <button type="button" id="createBtn" class="primary-btn">
-      Create New Room
-    </button>
-
-    <input id="roomInput" placeholder="Enter Room ID" />
-    <button type="button" id="joinBtn" class="secondary-btn">
-      Join Room
-    </button>
+    <button id="createBtn" class="primary-btn">Create New Room</button>
+    <button id="joinOpenBtn" class="secondary-btn">Join Room</button>
   </div>
 
   <div id="homeMessage"></div>
@@ -44,9 +33,9 @@
   <section class="why">
     <h2>Why Ghost Room?</h2>
     <ul>
-      <li>🕶️ Total anonymity</li>
-      <li>⏳ Auto-expiring rooms</li>
-      <li>🔒 Zero tracking</li>
+      <li>🕶️ No identity</li>
+      <li>⏳ Creator-defined expiry</li>
+      <li>🔒 No logs</li>
       <li>💬 Honest conversations</li>
     </ul>
   </section>
@@ -56,46 +45,31 @@
   </p>
 </main>
 
-<!-- ================= PREMIUM CREATE MODAL ================= -->
+<!-- ================= CREATE ROOM MODAL ================= -->
 <div id="createModal" class="modal hidden">
   <div class="premium-card">
 
-    <div class="card-header">
-      <span class="ghost">👻</span>
-      <h2>Create Ghost Room</h2>
-      <p>Private • Temporary • Anonymous</p>
+    <h2>👻 Create Ghost Room</h2>
+    <p class="subtitle">Private • Temporary • Anonymous</p>
+
+    <div class="option">
+      ⏳ <strong>Room Expiry</strong>
+      <select disabled>
+        <option>30 minutes</option>
+        <option>1 hour</option>
+        <option>24 hours</option>
+      </select>
+      <small>(UI ready – logic next phase)</small>
     </div>
 
-    <div class="card-body">
-      <div class="feature">
-        <span>⏳</span>
-        <div>
-          <strong>Auto Expiry</strong>
-          <small>Room deletes automatically</small>
-        </div>
-      </div>
-
-      <div class="feature">
-        <span>🗑️</span>
-        <div>
-          <strong>Message Deletion</strong>
-          <small>No history after expiry</small>
-        </div>
-      </div>
-
-      <div class="feature locked">
-        <span>⚙️</span>
-        <div>
-          <strong>Custom Rules</strong>
-          <small>Creator-defined (coming soon)</small>
-        </div>
-      </div>
-
-      <label class="agree">
-        <input type="checkbox" id="agreeRules">
-        I understand and agree to the rules
-      </label>
+    <div class="option locked">
+      ⚙️ Custom Rules (Coming Soon)
     </div>
+
+    <label class="agree">
+      <input type="checkbox" id="agreeRules">
+      I understand and agree
+    </label>
 
     <div class="card-actions">
       <button id="cancelCreate" class="ghost-btn">Cancel</button>
@@ -105,85 +79,117 @@
   </div>
 </div>
 
+<!-- ================= JOIN ROOM MODAL ================= -->
+<div id="joinModal" class="modal hidden">
+  <div class="premium-card">
+
+    <h2>🔐 Join Ghost Room</h2>
+    <p class="subtitle">Enter quietly</p>
+
+    <button class="ghost-btn" disabled>
+      📷 Scan QR (Coming Soon)
+    </button>
+
+    <input id="joinCode" placeholder="Enter Room Code" />
+
+    <div class="card-actions">
+      <button id="cancelJoin" class="ghost-btn">Cancel</button>
+      <button id="confirmJoin" class="primary-btn">Join Room</button>
+    </div>
+
+  </div>
+</div>
+
 <script>
-/* ================= SUPABASE (UNCHANGED) ================= */
 const supabaseClient = supabase.createClient(
   "https://ehvusinvfwsaxguuebfc.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
 );
 
-/* ================= UI MESSAGE ================= */
-function showHomeMessage(text) {
-  document.getElementById("homeMessage").textContent = text;
+function showHomeMessage(msg){
+  document.getElementById("homeMessage").textContent = msg;
 }
 
-/* ================= CORE LOGIC (UNCHANGED) ================= */
-async function createRoom() {
-  const id = Math.random().toString(36).substring(2, 8);
+async function createRoom(){
+  const id = Math.random().toString(36).substring(2,8);
   showHomeMessage("Creating secure room…");
-
-  try {
-    await supabaseClient.from("rooms").insert([{
-      room_code: id,
-      expired: false,
-      created_at: new Date().toISOString()
-    }]);
-  } catch (e) {}
-
+  try{
+    await supabaseClient.from("rooms").insert([{ room_code:id, expired:false }]);
+  }catch(e){}
   window.location.href = `room.html?room=${id}`;
 }
-
-function joinRoom() {
-  const id = document.getElementById("roomInput").value.trim();
-  if (!id) {
-    showHomeMessage("Please enter a room ID.");
-    return;
-  }
-  window.location.href = `room.html?room=${id}`;
-}
-
-/* ================= MODAL ================= */
-const modal = document.getElementById("createModal");
-
-document.getElementById("createBtn").onclick = () => {
-  modal.classList.remove("hidden");
-};
-
-document.getElementById("cancelCreate").onclick = () => {
-  modal.classList.add("hidden");
-};
 
 document.getElementById("confirmCreate").onclick = () => {
-  if (!document.getElementById("agreeRules").checked) {
-    alert("Please accept the rules");
-    return;
-  }
-  modal.classList.add("hidden");
+  if(!agreeRules.checked){ alert("Accept rules"); return; }
+  createModal.classList.add("hidden");
   createRoom();
 };
 
-document.getElementById("joinBtn").addEventListener("click", joinRoom);
+document.getElementById("confirmJoin").onclick = () => {
+  const code = joinCode.value.trim();
+  if(!code){ alert("Enter room code"); return; }
+  window.location.href = `room.html?room=${code}`;
+};
+
+createBtn.onclick = ()=>createModal.classList.remove("hidden");
+cancelCreate.onclick = ()=>createModal.classList.add("hidden");
+
+joinOpenBtn.onclick = ()=>joinModal.classList.remove("hidden");
+cancelJoin.onclick = ()=>joinModal.classList.add("hidden");
 </script>
 
 <style>
 body{
-  font-family:Inter,system-ui;
+  font-family:Inter;
   background:#050507;
   color:#fff;
 }
-
-/* Buttons */
+.modal{
+  position:fixed;
+  inset:0;
+  backdrop-filter:blur(10px);
+  background:rgba(0,0,0,.6);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.hidden{display:none}
+.premium-card{
+  width:90%;
+  max-width:420px;
+  background:rgba(25,25,40,.85);
+  border-radius:24px;
+  padding:22px;
+  animation:fadeUp .3s ease;
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:scale(.95)}
+  to{opacity:1;transform:scale(1)}
+}
+.subtitle{opacity:.6;margin-bottom:12px}
+.option{margin:14px 0}
+.option.locked{opacity:.4}
+input,select{
+  width:100%;
+  padding:12px;
+  border-radius:14px;
+  border:none;
+  margin-top:10px;
+}
+.card-actions{
+  display:flex;
+  justify-content:space-between;
+  margin-top:20px;
+}
 .primary-btn{
   background:linear-gradient(135deg,#6d5dfc,#9b8cff);
   border:none;
   padding:12px 18px;
   border-radius:14px;
-  color:#fff;
-  font-weight:600;
+  color:white;
 }
 .secondary-btn{
   background:#1a1a22;
-  border:none;
   padding:12px 18px;
   border-radius:14px;
   color:#ccc;
@@ -192,62 +198,9 @@ body{
   background:#111;
   border:1px solid #333;
   color:#aaa;
-  padding:12px 18px;
+  padding:12px;
   border-radius:14px;
 }
-
-/* Modal */
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.75);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:1000;
-}
-.hidden{display:none}
-
-/* Premium Card */
-.premium-card{
-  width:90%;
-  max-width:420px;
-  background:rgba(20,20,30,.85);
-  backdrop-filter:blur(18px);
-  border-radius:24px;
-  padding:20px;
-  animation:slideUp .35s ease;
-}
-@keyframes slideUp{
-  from{transform:translateY(40px);opacity:0}
-  to{transform:translateY(0);opacity:1}
-}
-
-.card-header{text-align:center}
-.card-header .ghost{font-size:32px}
-
-.feature{
-  display:flex;
-  gap:12px;
-  margin:14px 0;
-}
-.feature small{color:#aaa}
-.feature.locked{opacity:.5}
-
-.agree{
-  display:flex;
-  gap:8px;
-  margin-top:16px;
-  font-size:14px;
-}
-
-.card-actions{
-  display:flex;
-  justify-content:space-between;
-  margin-top:20px;
-}
-
-.about-link{margin-top:24px}
 </style>
 
 </body>
