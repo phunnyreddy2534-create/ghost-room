@@ -39,6 +39,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   const room = new URLSearchParams(location.search).get("room");
   if (!room) location.href = "/";
 
+  /* ======================================================
+     🔒 NEW: ROOM EXPIRY VALIDATION (SAFE ADDITION)
+     ====================================================== */
+  const { data: roomData, error: roomError } = await supabase
+    .from("rooms")
+    .select("expires_at, expired")
+    .eq("room_code", room)
+    .single();
+
+  // If room not found OR explicitly expired
+  if (!roomData || roomData.expired === true) {
+    alert("This room has expired.");
+    location.href = "/";
+    return;
+  }
+
+  // If expires_at exists, enforce time expiry
+  if (roomData.expires_at) {
+    const now = new Date();
+    const expiresAt = new Date(roomData.expires_at);
+    if (now > expiresAt) {
+      alert("This room has expired.");
+      location.href = "/";
+      return;
+    }
+  }
+  /* ===== END EXPIRY VALIDATION ===== */
+
   const roomIdEl = document.getElementById("roomId");
   const messagesBox = document.getElementById("messages");
   const input = document.getElementById("msgInput");
@@ -78,7 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     messagesBox.scrollTop = messagesBox.scrollHeight;
   }
 
-  /* ===== LOAD FROM CACHE FIRST (🔥 FIX) ===== */
+  /* ===== LOAD FROM CACHE FIRST ===== */
   const cached = getCachedMessages();
   cached.forEach(m => addMessage(m.text, m.sender, m.time));
 
@@ -115,7 +143,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     addMessage(text, clientId, time);
-
     saveCachedMessage({ text, sender: clientId, time });
 
     await supabase.from("messages").insert({
@@ -136,7 +163,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         minute: "2-digit"
       });
       addMessage(payload.new.content, payload.new.client_id, time);
-      saveCachedMessage({ text: payload.new.content, sender: payload.new.client_id, time });
+      saveCachedMessage({
+        text: payload.new.content,
+        sender: payload.new.client_id,
+        time
+      });
     }
   );
 
@@ -146,7 +177,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("exitBtn").onclick = () => {
     if (confirm(
       "Leave Ghost Room?\n\n" +
-      "• Messages auto-delete in 23 minutes\n" +
+      "• Messages auto-delete after expiry\n" +
       "• Room expires automatically\n\n" +
       "Thank you for using Ghost Room 👻"
     )) {
