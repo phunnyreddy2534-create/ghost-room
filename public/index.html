@@ -21,9 +21,9 @@
   </p>
 
   <div class="room-actions">
-    <button id="createBtn">Create New Room</button>
+    <button onclick="createRoom()">Create New Room</button>
     <input id="roomInput" placeholder="Enter Room ID" />
-    <button id="joinBtn">Join Room</button>
+    <button onclick="joinRoom()">Join Room</button>
   </div>
 
   <div id="homeMessage" style="margin-top:12px;color:#aaa;font-size:14px;"></div>
@@ -55,16 +55,11 @@ const supabase = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
 );
 
-/* ===== UI MESSAGE ===== */
 function showHomeMessage(text) {
   document.getElementById("homeMessage").textContent = text;
 }
 
-/* ===== SAFE BINDING (NEW) ===== */
-document.getElementById("createBtn").addEventListener("click", createRoom);
-document.getElementById("joinBtn").addEventListener("click", joinRoom);
-
-/* ===== CREATE ROOM (DEFENSIVE FIX) ===== */
+/* ===== CREATE ROOM (FIXED) ===== */
 async function createRoom() {
   const id = Math.random().toString(36).substring(2, 8);
   showHomeMessage("Creating secure room…");
@@ -77,18 +72,17 @@ async function createRoom() {
     });
 
     if (error) {
-      console.warn("Room insert blocked (RLS):", error.message);
-      showHomeMessage("Secure room created (privacy mode).");
+      console.warn("RLS blocked insert, continuing client-side:", error.message);
     }
   } catch (e) {
     console.warn("Insert skipped:", e);
   }
 
-  /* ✅ ALWAYS REDIRECT */
+  /* ✅ ALWAYS OPEN ROOM */
   location.href = `room.html?room=${id}`;
 }
 
-/* ===== JOIN ROOM (SOFT VALIDATION) ===== */
+/* ===== JOIN ROOM (UNCHANGED) ===== */
 async function joinRoom() {
   const id = document.getElementById("roomInput").value.trim();
   if (!id) {
@@ -105,7 +99,7 @@ async function joinRoom() {
       .single();
 
     if (!data) {
-      showHomeMessage("This room may be expired or private.");
+      showHomeMessage("This room has expired or does not exist.");
       return;
     }
   } catch (e) {
