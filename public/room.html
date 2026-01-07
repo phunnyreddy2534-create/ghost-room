@@ -29,31 +29,58 @@
   <button id="sendBtn">Send</button>
 </div>
 
+<!-- EXIT MODAL -->
+<div id="exitModal" class="modal hidden">
+  <div class="modal-box">
+    <h3>Leave Ghost Room?</h3>
+    <p>
+      Your messages will be deleted within <b>23 minutes</b>.<br />
+      This room will expire automatically.
+    </p>
+    <p class="thanks">Thank you for using Ghost Room 👻</p>
+    <div class="modal-actions">
+      <button onclick="closeExit()">Cancel</button>
+      <button onclick="confirmExit()">Exit</button>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
 
-  /* ===== SUPABASE ===== */
   const supabase = window.supabase.createClient(
     "https://ehvusinvfwsaxguuebfc.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
   );
 
-  /* ===== ROOM ===== */
   const room = new URLSearchParams(location.search).get("room");
   if (!room) location.href = "/";
+
+  /* 🔒 ROOM VALIDATION (CRITICAL) */
+  const { data: roomData } = await supabase
+    .from("rooms")
+    .select("room_code, expired")
+    .eq("room_code", room)
+    .eq("expired", false)
+    .single();
+
+  if (!roomData) {
+    alert("This room has expired or does not exist.");
+    location.href = "/";
+    return;
+  }
+
   document.getElementById("roomId").textContent = "Room ID: " + room;
 
   const messagesBox = document.getElementById("messages");
   const input = document.getElementById("msgInput");
 
-  /* ===== CLIENT ID ===== */
   let clientId = sessionStorage.getItem("ghost_client_id");
   if (!clientId) {
     clientId = crypto.randomUUID();
     sessionStorage.setItem("ghost_client_id", clientId);
   }
 
-  /* ===== UI ADD ===== */
   function addMessage(text, sender, time) {
     const div = document.createElement("div");
     div.className = "msg " + (sender === clientId ? "you" : "other");
@@ -62,7 +89,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     messagesBox.scrollTop = messagesBox.scrollHeight;
   }
 
-  /* ===== LOAD HISTORY ===== */
   const { data: history } = await supabase
     .from("messages")
     .select("*")
@@ -77,18 +103,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     )
   );
 
-  /* ===== CHANNELS ===== */
   const roomChannel = supabase.channel(`room-${room}`);
   const fallbackChannel = supabase.channel(`fallback-${room}`);
 
-  /* ===== SEND ===== */
   document.getElementById("sendBtn").onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
 
     const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
     addMessage(text, clientId, time);
 
     await supabase.from("messages").insert({
@@ -97,7 +120,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       content: text
     });
 
-    /* 🔥 FALLBACK BROADCAST */
     fallbackChannel.send({
       type: "broadcast",
       event: "msg",
@@ -105,7 +127,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
-  /* ===== REALTIME PRIMARY ===== */
   roomChannel.on(
     "postgres_changes",
     { event: "INSERT", schema: "public", table: "messages", filter: `room_code=eq.${room}` },
@@ -119,7 +140,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   );
 
-  /* ===== FALLBACK LISTENER ===== */
   fallbackChannel.on("broadcast", { event: "msg" }, e => {
     if (e.payload.sender === clientId) return;
     addMessage(e.payload.text, e.payload.sender, e.payload.time);
@@ -128,18 +148,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   await roomChannel.subscribe();
   await fallbackChannel.subscribe();
 
-  /* ===== EXIT CONFIRM ===== */
   document.getElementById("exitBtn").onclick = () => {
-    if (confirm(
-      "Your messages will be deleted within 23 minutes.\n" +
-      "This room will expire automatically.\n\n" +
-      "Thank you for using Ghost Room 👻"
-    )) {
-      location.href = "/";
-    }
+    document.getElementById("exitModal").classList.remove("hidden");
   };
 
-  /* ===== SHARE ===== */
+  window.closeExit = () => {
+    document.getElementById("exitModal").classList.add("hidden");
+  };
+
+  window.confirmExit = () => {
+    location.href = "/";
+  };
+
   document.getElementById("shareBtn").onclick = async () => {
     if (navigator.share) {
       navigator.share({ title: "Ghost Room", url: location.href });
