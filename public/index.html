@@ -4,11 +4,17 @@
   <meta charset="UTF-8" />
   <title>Ghost Room</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Existing CSS (kept) -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ SUPABASE v1 (UMD – MOBILE SAFE) -->
+  <!-- Supabase v1 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1"></script>
+
+  <!-- Premium Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
 <header class="top">
@@ -18,60 +24,89 @@
 <main class="home">
   <h1>Anonymous. No Login. Speak Freely.</h1>
   <p>
-    Ghost Room lets you create private chat rooms instantly — no accounts,
-    no tracking, no identity.
+    Create private, anonymous rooms.  
+    No identity. No history. No trace.
   </p>
 
   <div class="room-actions">
-    <!-- 🔐 MODAL TRIGGER -->
-    <button type="button" id="createBtn">Create New Room</button>
+    <button type="button" id="createBtn" class="primary-btn">
+      Create New Room
+    </button>
+
     <input id="roomInput" placeholder="Enter Room ID" />
-    <button type="button" id="joinBtn">Join Room</button>
+    <button type="button" id="joinBtn" class="secondary-btn">
+      Join Room
+    </button>
   </div>
 
-  <div id="homeMessage" style="margin-top:12px;color:#aaa;font-size:14px;"></div>
+  <div id="homeMessage"></div>
 
   <section class="why">
     <h2>Why Ghost Room?</h2>
     <ul>
-      <li>🕶️ No accounts, no identity</li>
-      <li>⏳ Temporary anonymous rooms</li>
-      <li>🔒 No tracking, no storage</li>
-      <li>💬 Built for honest conversations</li>
+      <li>🕶️ Total anonymity</li>
+      <li>⏳ Auto-expiring rooms</li>
+      <li>🔒 Zero tracking</li>
+      <li>💬 Honest conversations</li>
     </ul>
   </section>
 
-  <p style="margin-top:24px;">
+  <p class="about-link">
     <a href="about.html">About, Vision & Trust →</a>
   </p>
 </main>
 
-<!-- ================= CREATE ROOM MODAL ================= -->
+<!-- ================= PREMIUM CREATE MODAL ================= -->
 <div id="createModal" class="modal hidden">
-  <div class="modal-card">
-    <h2>👻 Create Ghost Room</h2>
+  <div class="premium-card">
 
-    <p style="font-size:14px;color:#bbb">
-      • Anonymous room<br>
-      • Messages auto-delete after expiry<br>
-      • Room expires automatically<br>
-      • No recovery possible
-    </p>
-
-    <label style="display:block;margin-top:12px">
-      <input type="checkbox" id="agreeRules">
-      I understand and agree to the rules
-    </label>
-
-    <div class="modal-actions">
-      <button id="cancelCreate">Cancel</button>
-      <button id="confirmCreate">Create Room</button>
+    <div class="card-header">
+      <span class="ghost">👻</span>
+      <h2>Create Ghost Room</h2>
+      <p>Private • Temporary • Anonymous</p>
     </div>
+
+    <div class="card-body">
+      <div class="feature">
+        <span>⏳</span>
+        <div>
+          <strong>Auto Expiry</strong>
+          <small>Room deletes automatically</small>
+        </div>
+      </div>
+
+      <div class="feature">
+        <span>🗑️</span>
+        <div>
+          <strong>Message Deletion</strong>
+          <small>No history after expiry</small>
+        </div>
+      </div>
+
+      <div class="feature locked">
+        <span>⚙️</span>
+        <div>
+          <strong>Custom Rules</strong>
+          <small>Creator-defined (coming soon)</small>
+        </div>
+      </div>
+
+      <label class="agree">
+        <input type="checkbox" id="agreeRules">
+        I understand and agree to the rules
+      </label>
+    </div>
+
+    <div class="card-actions">
+      <button id="cancelCreate" class="ghost-btn">Cancel</button>
+      <button id="confirmCreate" class="primary-btn">Create Room</button>
+    </div>
+
   </div>
 </div>
 
 <script>
-/* ================= SUPABASE CLIENT (UNCHANGED) ================= */
+/* ================= SUPABASE (UNCHANGED) ================= */
 const supabaseClient = supabase.createClient(
   "https://ehvusinvfwsaxguuebfc.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
@@ -82,7 +117,7 @@ function showHomeMessage(text) {
   document.getElementById("homeMessage").textContent = text;
 }
 
-/* ================= CORE CREATE ROOM (UNCHANGED) ================= */
+/* ================= CORE LOGIC (UNCHANGED) ================= */
 async function createRoom() {
   const id = Math.random().toString(36).substring(2, 8);
   showHomeMessage("Creating secure room…");
@@ -93,14 +128,11 @@ async function createRoom() {
       expired: false,
       created_at: new Date().toISOString()
     }]);
-  } catch (e) {
-    // Safe to ignore (mobile / RLS)
-  }
+  } catch (e) {}
 
   window.location.href = `room.html?room=${id}`;
 }
 
-/* ================= JOIN ROOM (UNCHANGED) ================= */
 function joinRoom() {
   const id = document.getElementById("roomInput").value.trim();
   if (!id) {
@@ -110,7 +142,7 @@ function joinRoom() {
   window.location.href = `room.html?room=${id}`;
 }
 
-/* ================= MODAL LOGIC (NEW) ================= */
+/* ================= MODAL ================= */
 const modal = document.getElementById("createModal");
 
 document.getElementById("createBtn").onclick = () => {
@@ -123,42 +155,99 @@ document.getElementById("cancelCreate").onclick = () => {
 
 document.getElementById("confirmCreate").onclick = () => {
   if (!document.getElementById("agreeRules").checked) {
-    alert("Please accept the rules to continue");
+    alert("Please accept the rules");
     return;
   }
   modal.classList.add("hidden");
-  createRoom(); // 🔥 original logic reused
+  createRoom();
 };
 
-/* ================= EVENT BINDING ================= */
 document.getElementById("joinBtn").addEventListener("click", joinRoom);
 </script>
 
 <style>
-/* ===== MODAL STYLES (SAFE ADDITION) ===== */
+body{
+  font-family:Inter,system-ui;
+  background:#050507;
+  color:#fff;
+}
+
+/* Buttons */
+.primary-btn{
+  background:linear-gradient(135deg,#6d5dfc,#9b8cff);
+  border:none;
+  padding:12px 18px;
+  border-radius:14px;
+  color:#fff;
+  font-weight:600;
+}
+.secondary-btn{
+  background:#1a1a22;
+  border:none;
+  padding:12px 18px;
+  border-radius:14px;
+  color:#ccc;
+}
+.ghost-btn{
+  background:#111;
+  border:1px solid #333;
+  color:#aaa;
+  padding:12px 18px;
+  border-radius:14px;
+}
+
+/* Modal */
 .modal{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,0.65);
+  background:rgba(0,0,0,.75);
   display:flex;
   align-items:center;
   justify-content:center;
   z-index:1000;
 }
 .hidden{display:none}
-.modal-card{
-  background:#111;
-  padding:20px;
-  border-radius:14px;
+
+/* Premium Card */
+.premium-card{
   width:90%;
   max-width:420px;
-  color:#fff;
+  background:rgba(20,20,30,.85);
+  backdrop-filter:blur(18px);
+  border-radius:24px;
+  padding:20px;
+  animation:slideUp .35s ease;
 }
-.modal-actions{
+@keyframes slideUp{
+  from{transform:translateY(40px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+
+.card-header{text-align:center}
+.card-header .ghost{font-size:32px}
+
+.feature{
+  display:flex;
+  gap:12px;
+  margin:14px 0;
+}
+.feature small{color:#aaa}
+.feature.locked{opacity:.5}
+
+.agree{
+  display:flex;
+  gap:8px;
+  margin-top:16px;
+  font-size:14px;
+}
+
+.card-actions{
   display:flex;
   justify-content:space-between;
-  margin-top:16px;
+  margin-top:20px;
 }
+
+.about-link{margin-top:24px}
 </style>
 
 </body>
