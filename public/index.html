@@ -21,11 +21,10 @@
   </p>
 
   <div class="room-actions">
-    <button type="button" onclick="alert('CLICK OK'); createRoom();">
-  Create New Room
-</button>
+    <!-- ✅ NO INLINE JS -->
+    <button type="button" id="createBtn">Create New Room</button>
     <input id="roomInput" placeholder="Enter Room ID" />
-    <button onclick="joinRoom()">Join Room</button>
+    <button type="button" id="joinBtn">Join Room</button>
   </div>
 
   <div id="homeMessage" style="margin-top:12px;color:#aaa;font-size:14px;"></div>
@@ -42,39 +41,37 @@
 </main>
 
 <script>
+/* ================= SUPABASE ================= */
 const supabase = window.supabase.createClient(
   "https://ehvusinvfwsaxguuebfc.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
 );
 
+/* ================= UI MESSAGE ================= */
 function showHomeMessage(text) {
   document.getElementById("homeMessage").textContent = text;
 }
 
-/* ===== CREATE ROOM (FIXED – NEVER BLOCK) ===== */
+/* ================= CREATE ROOM ================= */
 async function createRoom() {
   const id = Math.random().toString(36).substring(2, 8);
   showHomeMessage("Creating secure room…");
 
   try {
-    const { error } = await supabase.from("rooms").insert({
+    await supabase.from("rooms").insert({
       room_code: id,
       expired: false,
       created_at: new Date().toISOString()
     });
-
-    if (error) {
-      console.warn("Room insert blocked by RLS (safe to ignore):", error.message);
-    }
   } catch (e) {
-    console.warn("Supabase insert skipped:", e);
+    // Safe to ignore (RLS / offline / mobile)
   }
 
-  /* ✅ ALWAYS NAVIGATE */
-  window.location.href = `room.html?room=${id}`;
+  /* ✅ HARD NAVIGATION (mobile-proof) */
+  window.location.assign(`room.html?room=${id}`);
 }
 
-/* ===== JOIN ROOM (SOFT VALIDATION) ===== */
+/* ================= JOIN ROOM ================= */
 async function joinRoom() {
   const id = document.getElementById("roomInput").value.trim();
   if (!id) {
@@ -83,22 +80,22 @@ async function joinRoom() {
   }
 
   try {
-    const { data } = await supabase
+    await supabase
       .from("rooms")
       .select("room_code")
       .eq("room_code", id)
       .eq("expired", false)
       .single();
-
-    if (!data) {
-      showHomeMessage("This room may be expired, opening anyway…");
-    }
   } catch (e) {
-    console.warn("Join validation skipped:", e);
+    showHomeMessage("Room may be expired. Opening anyway…");
   }
 
-  window.location.href = `room.html?room=${id}`;
+  window.location.assign(`room.html?room=${id}`);
 }
+
+/* ================= MOBILE-SAFE BINDING ================= */
+document.getElementById("createBtn").addEventListener("click", createRoom);
+document.getElementById("joinBtn").addEventListener("click", joinRoom);
 </script>
 
 </body>
