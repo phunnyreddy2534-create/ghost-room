@@ -39,11 +39,16 @@
       <li>💬 Built for honest conversations</li>
     </ul>
   </section>
+
+  <!-- ✅ ABOUT LINK RESTORED -->
+  <p style="margin-top:24px;">
+    <a href="about.html">About, Vision & Trust →</a>
+  </p>
 </main>
 
 <script>
-/* ================= SUPABASE (v1) ================= */
-const supabase = supabase.createClient(
+/* ================= SUPABASE CLIENT (FIXED) ================= */
+const supabaseClient = supabase.createClient(
   "https://ehvusinvfwsaxguuebfc.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
 );
@@ -59,30 +64,29 @@ async function createRoom() {
   showHomeMessage("Creating secure room…");
 
   try {
-    await supabase.from("rooms").insert([{
+    await supabaseClient.from("rooms").insert([{
       room_code: id,
       expired: false,
       created_at: new Date().toISOString()
     }]);
   } catch (e) {
-    // Safe to ignore
+    // Safe to ignore on mobile / RLS
   }
 
   window.location.href = `room.html?room=${id}`;
 }
 
 /* ================= JOIN ROOM ================= */
-async function joinRoom() {
+function joinRoom() {
   const id = document.getElementById("roomInput").value.trim();
   if (!id) {
     showHomeMessage("Please enter a room ID.");
     return;
   }
-
   window.location.href = `room.html?room=${id}`;
 }
 
-/* ================= SAFE BINDING ================= */
+/* ================= EVENT BINDING ================= */
 document.getElementById("createBtn").addEventListener("click", createRoom);
 document.getElementById("joinBtn").addEventListener("click", joinRoom);
 </script>
