@@ -35,195 +35,115 @@
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
 
-  /* ===== SUPABASE ===== */
   const supabase = window.supabase.createClient(
     "https://ehvusinvfwsaxguuebfc.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
   );
 
-  /* ===== ROOM ===== */
   const room = new URLSearchParams(location.search).get("room");
   if (!room) location.href = "/";
-
   document.getElementById("roomId").textContent = "Room ID: " + room;
 
   const messagesBox = document.getElementById("messages");
   const input = document.getElementById("msgInput");
   const typingEl = document.getElementById("typingIndicator");
 
-  /* ===== CLIENT ID ===== */
   let clientId = localStorage.getItem("ghost_client_id");
   if (!clientId) {
     clientId = crypto.randomUUID();
     localStorage.setItem("ghost_client_id", clientId);
   }
 
-  /* ===== ROOM CHECK ===== */
+  /* ===== ROOM CREATE / CHECK ===== */
   const { data: roomData } = await supabase
     .from("rooms")
-    .select("*")
+    .select("expired")
     .eq("room_code", room)
     .single();
 
   if (!roomData) {
     await supabase.from("rooms").insert({
       room_code: room,
-      created_by: clientId
+      created_by: clientId,
+      last_active: new Date().toISOString()
     });
   } else if (roomData.expired) {
-    document.body.innerHTML = `
-      <div style="color:white;text-align:center;margin-top:40vh;">
-        <h2>👻 Room Expired</h2>
-        <p>This room is no longer active.</p>
-        <a href="/" style="color:#7b7bff;">Create New Room</a>
-      </div>
-    `;
+    document.body.innerHTML = "<h2 style='text-align:center'>Room Expired</h2>";
     return;
   }
 
-  /* ===== LOAD MESSAGE HISTORY ===== */
+  /* ===== LOAD HISTORY ===== */
   const { data: history } = await supabase
     .from("messages")
     .select("*")
     .eq("room_code", room)
     .order("created_at", { ascending: true });
 
-  let lastSenderId = null;
+  let lastSender = null;
 
-  function addMessage(text, senderId, timeStr) {
-    const isYou = senderId === clientId;
-    const grouped = lastSenderId === senderId;
+  function addMessage(text, sender, time) {
+    const isYou = sender === clientId;
+    const grouped = sender === lastSender;
 
     const div = document.createElement("div");
-    div.className =
-      "msg " + (isYou ? "you" : "other") + (grouped ? " grouped" : "");
-
-    div.innerHTML = `
-      <div>${text}</div>
-      ${grouped ? "" : `<div class="time">${timeStr}</div>`}
-    `;
-
+    div.className = "msg " + (isYou ? "you" : "other") + (grouped ? " grouped" : "");
+    div.innerHTML = `<div>${text}</div>${grouped ? "" : `<div class="time">${time}</div>`}`;
     messagesBox.appendChild(div);
     messagesBox.scrollTop = messagesBox.scrollHeight;
-    lastSenderId = senderId;
+    lastSender = sender;
   }
 
   history?.forEach(m =>
     addMessage(
       m.content,
       m.client_id,
-      new Date(m.created_at).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      })
+      new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     )
   );
 
   /* ===== HEARTBEAT ===== */
-  async function markActive() {
-    await supabase
-      .from("rooms")
+  setInterval(() => {
+    supabase.from("rooms")
       .update({ last_active: new Date().toISOString() })
-      .eq("room_code", room)
-      .eq("expired", false);
-  }
+      .eq("room_code", room);
+  }, 60000);
 
-  markActive();
-  setInterval(markActive, 60000);
-
-  /* ===== SEND MESSAGE ===== */
+  /* ===== SEND ===== */
   document.getElementById("sendBtn").onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
-
     input.value = "";
-    addMessage(
-      text,
-      clientId,
-      new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      })
-    );
 
     await supabase.from("messages").insert({
       room_code: room,
       client_id: clientId,
       content: text
     });
-
-    markActive();
   };
 
   /* ===== REALTIME ===== */
-  supabase
-    .channel("room-" + room)
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-        filter: `room_code=eq.${room}`
-      },
-      payload => {
-        if (payload.new.client_id === clientId) return;
-        addMessage(
-          payload.new.content,
-          payload.new.client_id,
-          new Date(payload.new.created_at).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit"
-          })
-        );
-      }
-    )
-    .subscribe();
-
-  /* ===== TYPING INDICATOR ===== */
-  const typingChannel = supabase.channel("typing-" + room);
-  let typingTimeout;
-
-  input.addEventListener("input", () => {
-    markActive();
-    typingChannel.send({
-      type: "broadcast",
-      event: "typing",
-      payload: { id: clientId }
-    });
-
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-      typingChannel.send({
-        type: "broadcast",
-        event: "stop",
-        payload: { id: clientId }
-      });
-    }, 2000);
-  });
-
-  typingChannel
-    .on("broadcast", { event: "typing" }, e => {
-      if (e.payload.id !== clientId) typingEl.style.display = "block";
-    })
-    .on("broadcast", { event: "stop" }, e => {
-      if (e.payload.id !== clientId) typingEl.style.display = "none";
+  supabase.channel("room-" + room)
+    .on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "messages",
+      filter: `room_code=eq.${room}`
+    }, payload => {
+      addMessage(
+        payload.new.content,
+        payload.new.client_id,
+        new Date(payload.new.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      );
     })
     .subscribe();
 
   /* ===== EXIT ===== */
-  document.getElementById("exitBtn").onclick = () => {
-    location.href = "/";
-  };
+  document.getElementById("exitBtn").onclick = () => location.href = "/";
 
   /* ===== SHARE ===== */
   document.getElementById("shareBtn").onclick = async () => {
-    if (navigator.share) {
-      navigator.share({ title: "Ghost Room", url: location.href });
-    } else {
-      await navigator.clipboard.writeText(location.href);
-      alert("Room link copied");
-    }
+    await navigator.clipboard.writeText(location.href);
+    alert("Room link copied");
   };
 
 });
