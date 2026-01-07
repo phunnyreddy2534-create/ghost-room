@@ -5,7 +5,9 @@
   <title>Ghost Room</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- ✅ SUPABASE v1 (UMD – MOBILE SAFE) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1"></script>
 </head>
 <body>
 
@@ -21,7 +23,6 @@
   </p>
 
   <div class="room-actions">
-    <!-- ✅ NO INLINE JS -->
     <button type="button" id="createBtn">Create New Room</button>
     <input id="roomInput" placeholder="Enter Room ID" />
     <button type="button" id="joinBtn">Join Room</button>
@@ -41,8 +42,8 @@
 </main>
 
 <script>
-/* ================= SUPABASE ================= */
-const supabase = window.supabase.createClient(
+/* ================= SUPABASE (v1) ================= */
+const supabase = supabase.createClient(
   "https://ehvusinvfwsaxguuebfc.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
 );
@@ -58,17 +59,16 @@ async function createRoom() {
   showHomeMessage("Creating secure room…");
 
   try {
-    await supabase.from("rooms").insert({
+    await supabase.from("rooms").insert([{
       room_code: id,
       expired: false,
       created_at: new Date().toISOString()
-    });
+    }]);
   } catch (e) {
-    // Safe to ignore (RLS / offline / mobile)
+    // Safe to ignore
   }
 
-  /* ✅ HARD NAVIGATION (mobile-proof) */
-  window.location.assign(`room.html?room=${id}`);
+  window.location.href = `room.html?room=${id}`;
 }
 
 /* ================= JOIN ROOM ================= */
@@ -79,21 +79,10 @@ async function joinRoom() {
     return;
   }
 
-  try {
-    await supabase
-      .from("rooms")
-      .select("room_code")
-      .eq("room_code", id)
-      .eq("expired", false)
-      .single();
-  } catch (e) {
-    showHomeMessage("Room may be expired. Opening anyway…");
-  }
-
-  window.location.assign(`room.html?room=${id}`);
+  window.location.href = `room.html?room=${id}`;
 }
 
-/* ================= MOBILE-SAFE BINDING ================= */
+/* ================= SAFE BINDING ================= */
 document.getElementById("createBtn").addEventListener("click", createRoom);
 document.getElementById("joinBtn").addEventListener("click", joinRoom);
 </script>
