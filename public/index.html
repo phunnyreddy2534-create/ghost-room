@@ -7,7 +7,6 @@
 
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1"></script>
-
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
@@ -53,13 +52,25 @@
     <p class="subtitle">Private · Temporary · Anonymous</p>
 
     <div class="option">
-      <strong>Room Lifetime</strong>
-      <div class="expiry-row">
-        <button class="pill active" disabled>30 min</button>
-        <button class="pill" disabled>1 hour</button>
-        <button class="pill" disabled>24 hours</button>
+      <strong>Room lifetime</strong>
+
+      <!-- Continuous time selector (UI only, logic compatible) -->
+      <input
+        type="range"
+        id="lifetimeRange"
+        min="1"
+        max="1440"
+        value="30"
+        class="range"
+      />
+
+      <div class="range-label" id="lifetimeLabel">
+        This room will quietly disappear in <strong>30 minutes</strong>.
       </div>
-      <small class="hint">Time fades quietly. No countdown is shown.</small>
+
+      <small class="hint">
+        No countdown. No warnings.
+      </small>
     </div>
 
     <div class="option locked">
@@ -68,7 +79,7 @@
 
     <label class="agree">
       <input type="checkbox" id="agreeRules">
-      I understand and agree
+      I understand this room is temporary and cannot be recovered
     </label>
 
     <div class="card-actions">
@@ -101,6 +112,7 @@
 </div>
 
 <script>
+/* ================= SUPABASE (UNCHANGED) ================= */
 const supabaseClient = supabase.createClient(
   "https://ehvusinvfwsaxguuebfc.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
@@ -110,6 +122,7 @@ function showHomeMessage(msg){
   document.getElementById("homeMessage").textContent = msg;
 }
 
+/* ================= CREATE ROOM (LOGIC UNCHANGED) ================= */
 async function createRoom(){
   const id = Math.random().toString(36).substring(2,8);
   showHomeMessage("Creating secure room…");
@@ -119,15 +132,38 @@ async function createRoom(){
   window.location.href = `room.html?room=${id}`;
 }
 
+/* ================= UI INTERACTIONS ================= */
+const lifetimeRange = document.getElementById("lifetimeRange");
+const lifetimeLabel = document.getElementById("lifetimeLabel");
+
+lifetimeRange.oninput = () => {
+  const minutes = parseInt(lifetimeRange.value, 10);
+  let text =
+    minutes < 60
+      ? `${minutes} minutes`
+      : minutes < 1440
+        ? `${Math.round(minutes / 60)} hours`
+        : `24 hours`;
+
+  lifetimeLabel.innerHTML =
+    `This room will quietly disappear in <strong>${text}</strong>.`;
+};
+
 confirmCreate.onclick = () => {
-  if(!agreeRules.checked){ alert("Please agree to continue"); return; }
+  if(!agreeRules.checked){
+    alert("Please agree to continue");
+    return;
+  }
   createModal.classList.add("hidden");
   createRoom();
 };
 
 confirmJoin.onclick = () => {
   const code = joinCode.value.trim();
-  if(!code){ alert("Enter room code"); return; }
+  if(!code){
+    alert("Enter room code");
+    return;
+  }
   window.location.href = `room.html?room=${code}`;
 };
 
@@ -191,24 +227,15 @@ body{
   opacity:.35;
 }
 
-.expiry-row{
-  display:flex;
-  gap:10px;
+.range{
+  width:100%;
+  margin-top:14px;
+}
+
+.range-label{
   margin-top:10px;
-}
-
-.pill{
-  flex:1;
-  padding:10px;
-  border-radius:999px;
-  border:none;
-  background:#1a1a28;
-  color:#777;
-}
-
-.pill.active{
-  background:linear-gradient(135deg,#6d5dfc,#9b8cff);
-  color:white;
+  font-size:14px;
+  opacity:.85;
 }
 
 .hint{
