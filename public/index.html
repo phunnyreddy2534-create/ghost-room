@@ -7,7 +7,6 @@
 
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1"></script>
-
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
@@ -19,9 +18,7 @@
 
 <main class="home">
   <h1>Anonymous. No Login. Speak Freely.</h1>
-  <p>
-    Private rooms that vanish without a trace.
-  </p>
+  <p>Private rooms that vanish without a trace.</p>
 
   <div class="room-actions">
     <button id="createBtn" class="primary-btn">Create New Room</button>
@@ -45,26 +42,22 @@
   </p>
 </main>
 
-<!-- ================= CREATE ROOM MODAL ================= -->
+<!-- CREATE MODAL -->
 <div id="createModal" class="modal hidden">
   <div class="premium-card">
-
     <h2>👻 Create Ghost Room</h2>
     <p class="subtitle">Private • Temporary • Anonymous</p>
 
     <div class="option">
       ⏳ <strong>Room Expiry</strong>
-      <select disabled>
-        <option>30 minutes</option>
-        <option>1 hour</option>
-        <option>24 hours</option>
+      <select id="expirySelect">
+        <option value="30">30 minutes</option>
+        <option value="60">1 hour</option>
+        <option value="1440">24 hours</option>
       </select>
-      <small>(UI ready – logic next phase)</small>
     </div>
 
-    <div class="option locked">
-      ⚙️ Custom Rules (Coming Soon)
-    </div>
+    <div class="option locked">⚙️ Custom Rules (Coming Soon)</div>
 
     <label class="agree">
       <input type="checkbox" id="agreeRules">
@@ -75,20 +68,16 @@
       <button id="cancelCreate" class="ghost-btn">Cancel</button>
       <button id="confirmCreate" class="primary-btn">Create Room</button>
     </div>
-
   </div>
 </div>
 
-<!-- ================= JOIN ROOM MODAL ================= -->
+<!-- JOIN MODAL -->
 <div id="joinModal" class="modal hidden">
   <div class="premium-card">
-
     <h2>🔐 Join Ghost Room</h2>
     <p class="subtitle">Enter quietly</p>
 
-    <button class="ghost-btn" disabled>
-      📷 Scan QR (Coming Soon)
-    </button>
+    <button class="ghost-btn" disabled>📷 Scan QR (Coming Soon)</button>
 
     <input id="joinCode" placeholder="Enter Room Code" />
 
@@ -96,7 +85,6 @@
       <button id="cancelJoin" class="ghost-btn">Cancel</button>
       <button id="confirmJoin" class="primary-btn">Join Room</button>
     </div>
-
   </div>
 </div>
 
@@ -112,96 +100,45 @@ function showHomeMessage(msg){
 
 async function createRoom(){
   const id = Math.random().toString(36).substring(2,8);
+  const expiryMinutes = parseInt(document.getElementById("expirySelect").value, 10);
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + expiryMinutes * 60000);
+
   showHomeMessage("Creating secure room…");
+
   try{
-    await supabaseClient.from("rooms").insert([{ room_code:id, expired:false }]);
+    await supabaseClient.from("rooms").insert([{
+      room_code: id,
+      expired: false,
+      expiry_minutes: expiryMinutes,
+      expires_at: expiresAt.toISOString(),
+      created_at: now.toISOString()
+    }]);
   }catch(e){}
+
   window.location.href = `room.html?room=${id}`;
 }
 
-document.getElementById("confirmCreate").onclick = () => {
+/* MODAL HANDLERS */
+createBtn.onclick = ()=>createModal.classList.remove("hidden");
+cancelCreate.onclick = ()=>createModal.classList.add("hidden");
+
+confirmCreate.onclick = ()=>{
   if(!agreeRules.checked){ alert("Accept rules"); return; }
   createModal.classList.add("hidden");
   createRoom();
 };
 
-document.getElementById("confirmJoin").onclick = () => {
+joinOpenBtn.onclick = ()=>joinModal.classList.remove("hidden");
+cancelJoin.onclick = ()=>joinModal.classList.add("hidden");
+
+confirmJoin.onclick = ()=>{
   const code = joinCode.value.trim();
   if(!code){ alert("Enter room code"); return; }
   window.location.href = `room.html?room=${code}`;
 };
-
-createBtn.onclick = ()=>createModal.classList.remove("hidden");
-cancelCreate.onclick = ()=>createModal.classList.add("hidden");
-
-joinOpenBtn.onclick = ()=>joinModal.classList.remove("hidden");
-cancelJoin.onclick = ()=>joinModal.classList.add("hidden");
 </script>
-
-<style>
-body{
-  font-family:Inter;
-  background:#050507;
-  color:#fff;
-}
-.modal{
-  position:fixed;
-  inset:0;
-  backdrop-filter:blur(10px);
-  background:rgba(0,0,0,.6);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-}
-.hidden{display:none}
-.premium-card{
-  width:90%;
-  max-width:420px;
-  background:rgba(25,25,40,.85);
-  border-radius:24px;
-  padding:22px;
-  animation:fadeUp .3s ease;
-}
-@keyframes fadeUp{
-  from{opacity:0;transform:scale(.95)}
-  to{opacity:1;transform:scale(1)}
-}
-.subtitle{opacity:.6;margin-bottom:12px}
-.option{margin:14px 0}
-.option.locked{opacity:.4}
-input,select{
-  width:100%;
-  padding:12px;
-  border-radius:14px;
-  border:none;
-  margin-top:10px;
-}
-.card-actions{
-  display:flex;
-  justify-content:space-between;
-  margin-top:20px;
-}
-.primary-btn{
-  background:linear-gradient(135deg,#6d5dfc,#9b8cff);
-  border:none;
-  padding:12px 18px;
-  border-radius:14px;
-  color:white;
-}
-.secondary-btn{
-  background:#1a1a22;
-  padding:12px 18px;
-  border-radius:14px;
-  color:#ccc;
-}
-.ghost-btn{
-  background:#111;
-  border:1px solid #333;
-  color:#aaa;
-  padding:12px;
-  border-radius:14px;
-}
-</style>
 
 </body>
 </html>
