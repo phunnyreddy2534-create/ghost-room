@@ -26,6 +26,9 @@
     <button onclick="joinRoom()">Join Room</button>
   </div>
 
+  <!-- ✅ PROFESSIONAL STATUS MESSAGE -->
+  <div id="homeMessage" style="margin-top:12px;color:#aaa;font-size:14px;"></div>
+
   <section class="why">
     <h2>Why Ghost Room?</h2>
     <ul>
@@ -53,20 +56,49 @@ const supabase = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
 );
 
+/* ===== UI MESSAGE ===== */
+function showHomeMessage(text) {
+  document.getElementById("homeMessage").textContent = text;
+}
+
+/* ===== CREATE ROOM (STRICT) ===== */
 async function createRoom() {
   const id = Math.random().toString(36).substring(2, 8);
 
-  await supabase.from("rooms").insert({
+  const { error } = await supabase.from("rooms").insert({
     room_code: id,
-    expired: false
+    expired: false,
+    created_at: new Date().toISOString()
   });
+
+  if (error) {
+    showHomeMessage("Unable to create room. Please try again.");
+    return;
+  }
 
   location.href = `room.html?room=${id}`;
 }
 
-function joinRoom() {
+/* ===== JOIN ROOM (VALIDATED) ===== */
+async function joinRoom() {
   const id = document.getElementById("roomInput").value.trim();
-  if (!id) return alert("Enter room ID");
+  if (!id) {
+    showHomeMessage("Please enter a room ID.");
+    return;
+  }
+
+  const { data } = await supabase
+    .from("rooms")
+    .select("room_code")
+    .eq("room_code", id)
+    .eq("expired", false)
+    .single();
+
+  if (!data) {
+    showHomeMessage("This room has expired or does not exist.");
+    return;
+  }
+
   location.href = `room.html?room=${id}`;
 }
 </script>
