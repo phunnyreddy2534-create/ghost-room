@@ -24,7 +24,9 @@
   <div class="system">You joined the room</div>
 </div>
 
-<div id="typingIndicator" class="typing" style="display:none;">Someone is typing…</div>
+<div id="typingIndicator" class="typing" style="display:none;">
+  Someone is typing…
+</div>
 
 <div class="input-bar">
   <input id="msgInput" placeholder="Type a message..." autocomplete="off" />
@@ -48,18 +50,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   const messagesBox = document.getElementById("messages");
   const input = document.getElementById("msgInput");
 
-  /* ===== CLIENT ID ===== */
-  let clientId = localStorage.getItem("ghost_client_id");
+  /* ===== CLIENT ID (🔥 FIXED – SESSION ONLY) ===== */
+  let clientId = sessionStorage.getItem("ghost_client_id");
   if (!clientId) {
     clientId = crypto.randomUUID();
-    localStorage.setItem("ghost_client_id", clientId);
+    sessionStorage.setItem("ghost_client_id", clientId);
   }
 
   /* ===== ADD MESSAGE (UI) ===== */
   function addMessage(text, sender, time) {
     const div = document.createElement("div");
     div.className = "msg " + (sender === clientId ? "you" : "other");
-    div.innerHTML = `<div>${text}</div><div class="time">${time}</div>`;
+    div.innerHTML = `
+      <div>${text}</div>
+      <div class="time">${time}</div>
+    `;
     messagesBox.appendChild(div);
     messagesBox.scrollTop = messagesBox.scrollHeight;
   }
@@ -75,24 +80,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     addMessage(
       m.content,
       m.client_id,
-      new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      new Date(m.created_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })
     );
   });
 
-  /* ===== SEND MESSAGE (🔥 FIX) ===== */
+  /* ===== SEND MESSAGE ===== */
   document.getElementById("sendBtn").onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
 
-    /* ✅ 1. SHOW IMMEDIATELY */
+    /* show instantly */
     addMessage(
       text,
       clientId,
-      new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })
     );
 
-    /* ✅ 2. SAVE TO DATABASE */
+    /* save to DB */
     await supabase.from("messages").insert({
       room_code: room,
       client_id: clientId,
@@ -100,7 +111,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
-  /* ===== REALTIME (OTHER USERS ONLY) ===== */
+  /* ===== REALTIME ===== */
   const channel = supabase.channel(`room-${room}`);
 
   channel.on(
@@ -112,11 +123,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       filter: `room_code=eq.${room}`
     },
     payload => {
-      if (payload.new.client_id === clientId) return; // 🚫 prevent duplicate
+      if (payload.new.client_id === clientId) return; // prevent duplicate
       addMessage(
         payload.new.content,
         payload.new.client_id,
-        new Date(payload.new.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        new Date(payload.new.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit"
+        })
       );
     }
   );
