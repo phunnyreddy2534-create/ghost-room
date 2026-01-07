@@ -34,34 +34,28 @@
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
 
+  /* ===== SUPABASE ===== */
   const supabase = window.supabase.createClient(
     "https://ehvusinvfwsaxguuebfc.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
   );
 
+  /* ===== ROOM ===== */
   const room = new URLSearchParams(location.search).get("room");
   if (!room) location.href = "/";
   document.getElementById("roomId").textContent = "Room ID: " + room;
 
   const messagesBox = document.getElementById("messages");
   const input = document.getElementById("msgInput");
-  const typingEl = document.getElementById("typingIndicator");
 
+  /* ===== CLIENT ID ===== */
   let clientId = localStorage.getItem("ghost_client_id");
   if (!clientId) {
     clientId = crypto.randomUUID();
     localStorage.setItem("ghost_client_id", clientId);
   }
 
-  /* LOAD HISTORY */
-  const { data: history } = await supabase
-    .from("messages")
-    .select("*")
-    .eq("room_code", room)
-    .order("created_at");
-
-  let lastSender = null;
-
+  /* ===== ADD MESSAGE (UI) ===== */
   function addMessage(text, sender, time) {
     const div = document.createElement("div");
     div.className = "msg " + (sender === clientId ? "you" : "other");
@@ -70,20 +64,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     messagesBox.scrollTop = messagesBox.scrollHeight;
   }
 
+  /* ===== LOAD HISTORY ===== */
+  const { data: history } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("room_code", room)
+    .order("created_at");
+
   history?.forEach(m => {
     addMessage(
       m.content,
       m.client_id,
-      new Date(m.created_at).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})
+      new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     );
   });
 
-  /* SEND */
+  /* ===== SEND MESSAGE (🔥 FIX) ===== */
   document.getElementById("sendBtn").onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
 
+    /* ✅ 1. SHOW IMMEDIATELY */
+    addMessage(
+      text,
+      clientId,
+      new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
+
+    /* ✅ 2. SAVE TO DATABASE */
     await supabase.from("messages").insert({
       room_code: room,
       client_id: clientId,
@@ -91,31 +100,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
-  /* REALTIME (HARD FIX) */
-  const channel = supabase.channel(`room-${room}`, {
-    config: { broadcast: { self: false } }
-  });
+  /* ===== REALTIME (OTHER USERS ONLY) ===== */
+  const channel = supabase.channel(`room-${room}`);
 
-  channel
-    .on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "messages", filter: `room_code=eq.${room}` },
-      payload => {
-        addMessage(
-          payload.new.content,
-          payload.new.client_id,
-          new Date(payload.new.created_at).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})
-        );
-      }
-    );
+  channel.on(
+    "postgres_changes",
+    {
+      event: "INSERT",
+      schema: "public",
+      table: "messages",
+      filter: `room_code=eq.${room}`
+    },
+    payload => {
+      if (payload.new.client_id === clientId) return; // 🚫 prevent duplicate
+      addMessage(
+        payload.new.content,
+        payload.new.client_id,
+        new Date(payload.new.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      );
+    }
+  );
 
-  const status = await channel.subscribe();
-  console.log("Realtime status:", status);
+  await channel.subscribe();
 
-  /* EXIT */
+  /* ===== EXIT ===== */
   document.getElementById("exitBtn").onclick = () => location.href = "/";
 
-  /* SHARE */
+  /* ===== SHARE ===== */
   document.getElementById("shareBtn").onclick = async () => {
     await navigator.clipboard.writeText(location.href);
     alert("Room link copied");
