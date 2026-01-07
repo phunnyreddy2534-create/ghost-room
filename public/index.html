@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Ghost Room</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <title>Ghost Room</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<link rel="stylesheet" href="style.css" />
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -16,57 +17,53 @@
   <div class="logo">👻 Ghost Room</div>
 </header>
 
-<main class="home" id="home">
-  <h1>Anonymous. No Login. Speak Freely.</h1>
-  <p>Private rooms that vanish without a trace.</p>
+<main class="home">
+  <h1>Speak freely.</h1>
+  <p class="hero-sub">
+    Private rooms that appear quietly — and vanish without a trace.
+  </p>
 
   <div class="room-actions">
-    <button id="createBtn" class="primary-btn">Create New Room</button>
+    <button id="createBtn" class="primary-btn">Create Room</button>
     <button id="joinOpenBtn" class="secondary-btn">Join Room</button>
   </div>
+
+  <div id="homeMessage"></div>
 
   <section class="why">
     <h2>Why Ghost Room?</h2>
     <ul>
-      <li>🕶️ No identity</li>
-      <li>⏳ Creator-defined expiry</li>
-      <li>🫥 Auto-expire on inactivity</li>
-      <li>🔒 No logs</li>
+      <li>🕶️ No identity, ever</li>
+      <li>⏳ Rooms expire by design</li>
+      <li>🔒 No logs, no recovery</li>
+      <li>💬 Conversations without pressure</li>
     </ul>
   </section>
+
+  <p class="about-link">
+    <a href="about.html">About · Vision · Trust →</a>
+  </p>
 </main>
 
-<!-- CREATE MODAL -->
+<!-- CREATE ROOM MODAL -->
 <div id="createModal" class="modal hidden">
-  <div class="glass-card">
+  <div class="premium-card">
 
     <h2>👻 Create Ghost Room</h2>
-    <p class="subtitle">Private • Temporary • Anonymous</p>
+    <p class="subtitle">Private · Temporary · Anonymous</p>
 
-    <!-- HARD EXPIRY -->
-    <div class="section">
-      <label>⏳ Room Lifetime</label>
-      <div class="pill-row" id="expiryPills">
-        <button data-min="30" class="pill active">30 min</button>
-        <button data-min="60" class="pill">1 hour</button>
-        <button data-min="1440" class="pill">24 hours</button>
+    <div class="option">
+      <strong>Room Lifetime</strong>
+      <div class="expiry-row">
+        <button class="pill active" disabled>30 min</button>
+        <button class="pill" disabled>1 hour</button>
+        <button class="pill" disabled>24 hours</button>
       </div>
+      <small class="hint">Time fades quietly. No countdown is shown.</small>
     </div>
 
-    <!-- INACTIVITY EXPIRY -->
-    <div class="section">
-      <label>🫥 Inactivity Expiry</label>
-      <div class="pill-row" id="inactivePills">
-        <button data-min="15" class="pill">15 min</button>
-        <button data-min="30" class="pill active">30 min</button>
-        <button data-min="60" class="pill">1 hour</button>
-      </div>
-      <small>No messages → room expires</small>
-    </div>
-
-    <!-- RULES -->
-    <div class="section locked">
-      ⚙️ Custom Rules (Creator-only – coming soon)
+    <div class="option locked">
+      Custom rules · Creator-only (coming soon)
     </div>
 
     <label class="agree">
@@ -82,14 +79,18 @@
   </div>
 </div>
 
-<!-- JOIN MODAL -->
+<!-- JOIN ROOM MODAL -->
 <div id="joinModal" class="modal hidden">
-  <div class="glass-card">
+  <div class="premium-card">
 
-    <h2>🔐 Join Ghost Room</h2>
-    <p class="subtitle">Enter quietly</p>
+    <h2>Enter quietly</h2>
+    <p class="subtitle">You won’t leave a trace.</p>
 
-    <input id="joinCode" placeholder="Enter Room Code" />
+    <button class="ghost-btn wide" disabled>
+      Scan QR (coming soon)
+    </button>
+
+    <input id="joinCode" placeholder="Room code" />
 
     <div class="card-actions">
       <button id="cancelJoin" class="ghost-btn">Cancel</button>
@@ -105,98 +106,166 @@ const supabaseClient = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
 );
 
-let expiryMinutes = 30;
-let inactivityMinutes = 30;
-
-/* PILL HANDLERS */
-function setupPills(containerId, setter){
-  document.querySelectorAll(`#${containerId} .pill`).forEach(btn=>{
-    btn.onclick = ()=>{
-      document.querySelectorAll(`#${containerId} .pill`).forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      setter(parseInt(btn.dataset.min,10));
-    };
-  });
+function showHomeMessage(msg){
+  document.getElementById("homeMessage").textContent = msg;
 }
 
-setupPills("expiryPills", v=>expiryMinutes=v);
-setupPills("inactivePills", v=>inactivityMinutes=v);
-
-/* CREATE ROOM */
-confirmCreate.onclick = async ()=>{
-  if(!agreeRules.checked){
-    alert("Please accept the rules");
-    return;
-  }
-
-  const roomId = Math.random().toString(36).substring(2,8);
-  const creatorKey = crypto.randomUUID();
-
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + expiryMinutes*60000);
-
-  sessionStorage.setItem("ghost_creator_key", creatorKey);
-
-  await supabaseClient.from("rooms").insert([{
-    room_code: roomId,
-    created_at: now.toISOString(),
-    expires_at: expiresAt.toISOString(),
-    expiry_minutes: expiryMinutes,
-    inactivity_minutes: inactivityMinutes,
-    last_activity_at: now.toISOString(),
-    creator_key: creatorKey,
-    expired: false
-  }]);
-
-  location.href = `room.html?room=${roomId}`;
-};
-
-/* MODAL CONTROLS */
-createBtn.onclick = ()=>toggle(createModal,true);
-cancelCreate.onclick = ()=>toggle(createModal,false);
-
-joinOpenBtn.onclick = ()=>toggle(joinModal,true);
-cancelJoin.onclick = ()=>toggle(joinModal,false);
-
-confirmJoin.onclick = ()=>{
-  if(!joinCode.value.trim()) return;
-  location.href = `room.html?room=${joinCode.value.trim()}`;
-};
-
-function toggle(el,show){
-  el.classList.toggle("hidden",!show);
-  document.body.style.overflow = show ? "hidden" : "";
+async function createRoom(){
+  const id = Math.random().toString(36).substring(2,8);
+  showHomeMessage("Creating secure room…");
+  try{
+    await supabaseClient.from("rooms").insert([{ room_code:id, expired:false }]);
+  }catch(e){}
+  window.location.href = `room.html?room=${id}`;
 }
+
+confirmCreate.onclick = () => {
+  if(!agreeRules.checked){ alert("Please agree to continue"); return; }
+  createModal.classList.add("hidden");
+  createRoom();
+};
+
+confirmJoin.onclick = () => {
+  const code = joinCode.value.trim();
+  if(!code){ alert("Enter room code"); return; }
+  window.location.href = `room.html?room=${code}`;
+};
+
+createBtn.onclick = ()=>createModal.classList.remove("hidden");
+cancelCreate.onclick = ()=>createModal.classList.add("hidden");
+
+joinOpenBtn.onclick = ()=>joinModal.classList.remove("hidden");
+cancelJoin.onclick = ()=>joinModal.classList.add("hidden");
 </script>
 
 <style>
+body{
+  font-family:Inter,system-ui;
+  background:#050507;
+  color:#fff;
+}
+
+.hero-sub{
+  opacity:.7;
+  margin-bottom:28px;
+}
+
 .modal{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.7);
+  position:fixed;
+  inset:0;
   backdrop-filter:blur(14px);
-  display:flex; justify-content:center; align-items:center;
-  z-index:999;
+  background:rgba(0,0,0,.65);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:1000;
 }
+
 .hidden{display:none}
-.glass-card{
-  width:90%; max-width:380px;
-  background:rgba(20,20,35,.88);
+
+.premium-card{
+  width:90%;
+  max-width:420px;
+  background:linear-gradient(180deg,rgba(30,30,50,.92),rgba(18,18,30,.92));
   border-radius:26px;
-  padding:22px;
-  animation:fade .25s ease;
+  padding:24px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  animation:emerge .35s ease;
 }
-@keyframes fade{from{opacity:0;transform:scale(.96)}to{opacity:1}}
-.section{margin:16px 0}
-.pill-row{display:flex;gap:10px;margin-top:8px}
+
+@keyframes emerge{
+  from{opacity:0;transform:translateY(24px) scale(.96)}
+  to{opacity:1;transform:none}
+}
+
+.subtitle{
+  opacity:.55;
+  margin-bottom:18px;
+}
+
+.option{
+  margin:18px 0;
+}
+
+.option.locked{
+  opacity:.35;
+}
+
+.expiry-row{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+
 .pill{
-  flex:1;padding:10px;border-radius:14px;border:none;
-  background:#1b1b2a;color:#aaa;
+  flex:1;
+  padding:10px;
+  border-radius:999px;
+  border:none;
+  background:#1a1a28;
+  color:#777;
 }
+
 .pill.active{
   background:linear-gradient(135deg,#6d5dfc,#9b8cff);
   color:white;
 }
-.locked{opacity:.45}
+
+.hint{
+  font-size:12px;
+  opacity:.5;
+  margin-top:6px;
+  display:block;
+}
+
+input{
+  width:100%;
+  padding:12px 14px;
+  border-radius:16px;
+  border:none;
+  margin-top:14px;
+}
+
+.card-actions{
+  display:flex;
+  justify-content:space-between;
+  margin-top:22px;
+}
+
+.primary-btn{
+  background:linear-gradient(135deg,#6d5dfc,#9b8cff);
+  border:none;
+  padding:12px 20px;
+  border-radius:16px;
+  color:white;
+  font-weight:600;
+}
+
+.secondary-btn{
+  background:#1a1a22;
+  padding:12px 20px;
+  border-radius:16px;
+  color:#ccc;
+}
+
+.ghost-btn{
+  background:#0f0f16;
+  border:1px solid #2a2a3a;
+  color:#aaa;
+  padding:12px 18px;
+  border-radius:16px;
+}
+
+.ghost-btn.wide{
+  width:100%;
+}
+
+.agree{
+  display:flex;
+  gap:8px;
+  margin-top:14px;
+  font-size:14px;
+}
 </style>
 
 </body>
