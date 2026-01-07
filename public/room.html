@@ -20,9 +20,7 @@
 
 <div class="room-id" id="roomId"></div>
 
-<div class="messages" id="messages">
-  <div class="system">You joined the room</div>
-</div>
+<div class="messages" id="messages"></div>
 
 <div class="input-bar">
   <input id="msgInput" placeholder="Type a message..." autocomplete="off" />
@@ -32,15 +30,17 @@
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
 
+  /* ===== SUPABASE ===== */
   const supabase = window.supabase.createClient(
     "https://ehvusinvfwsaxguuebfc.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
   );
 
+  /* ===== ROOM ===== */
   const room = new URLSearchParams(location.search).get("room");
   if (!room) location.href = "/";
 
-  /* ===== STRICT ROOM CHECK (NEW) ===== */
+  /* ===== ROOM VALIDATION (UNCHANGED) ===== */
   const { data: roomData } = await supabase
     .from("rooms")
     .select("expired")
@@ -59,44 +59,71 @@ document.addEventListener("DOMContentLoaded", async () => {
   const messagesBox = document.getElementById("messages");
   const input = document.getElementById("msgInput");
 
+  /* ===== CLIENT ID ===== */
   let clientId = sessionStorage.getItem("ghost_client_id");
   if (!clientId) {
     clientId = crypto.randomUUID();
     sessionStorage.setItem("ghost_client_id", clientId);
   }
 
+  /* ===== JOIN FLAG (🔥 F-1 FIX) ===== */
+  const joinKey = `joined_${room}`;
+  const isFirstJoin = !sessionStorage.getItem(joinKey);
+
+  /* ===== MESSAGE UI ===== */
   function addMessage(text, sender, time) {
     const div = document.createElement("div");
     div.className = "msg " + (sender === clientId ? "you" : "other");
     div.innerHTML = `<div>${text}</div><div class="time">${time}</div>`;
     messagesBox.appendChild(div);
-    messagesBox.scrollTop = messagesBox.scrollHeight;
   }
 
+  /* ===== LOAD HISTORY (ALWAYS) ===== */
   const { data: history } = await supabase
     .from("messages")
     .select("*")
     .eq("room_code", room)
-    .order("created_at");
+    .order("created_at", { ascending: true });
 
   history?.forEach(m =>
     addMessage(
       m.content,
       m.client_id,
-      new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      new Date(m.created_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })
     )
   );
 
+  /* ===== SYSTEM MESSAGE (ONLY ONCE) ===== */
+  if (isFirstJoin) {
+    const sys = document.createElement("div");
+    sys.className = "system";
+    sys.textContent = "You joined the room";
+    messagesBox.appendChild(sys);
+    sessionStorage.setItem(joinKey, "yes");
+  }
+
+  messagesBox.scrollTop = messagesBox.scrollHeight;
+
+  /* ===== CHANNELS (UNCHANGED) ===== */
   const roomChannel = supabase.channel(`room-${room}`);
   const fallbackChannel = supabase.channel(`fallback-${room}`);
 
+  /* ===== SEND MESSAGE ===== */
   document.getElementById("sendBtn").onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
 
-    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const time = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
     addMessage(text, clientId, time);
+    messagesBox.scrollTop = messagesBox.scrollHeight;
 
     await supabase.from("messages").insert({
       room_code: room,
@@ -111,6 +138,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
+  /* ===== REALTIME ===== */
   roomChannel.on(
     "postgres_changes",
     { event: "INSERT", schema: "public", table: "messages", filter: `room_code=eq.${room}` },
@@ -119,20 +147,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       addMessage(
         payload.new.content,
         payload.new.client_id,
-        new Date(payload.new.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        new Date(payload.new.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit"
+        })
       );
+      messagesBox.scrollTop = messagesBox.scrollHeight;
     }
   );
 
   fallbackChannel.on("broadcast", { event: "msg" }, e => {
     if (e.payload.sender === clientId) return;
     addMessage(e.payload.text, e.payload.sender, e.payload.time);
+    messagesBox.scrollTop = messagesBox.scrollHeight;
   });
 
   await roomChannel.subscribe();
   await fallbackChannel.subscribe();
 
-  /* ===== PROFESSIONAL EXIT MODAL ===== */
+  /* ===== EXIT (LOGIC UNCHANGED) ===== */
   document.getElementById("exitBtn").onclick = () => {
     if (confirm(
       "Leave Ghost Room?\n\n" +
