@@ -5,6 +5,7 @@
   <title>Ghost Room</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -47,8 +48,19 @@
 </main>
 
 <script>
-function createRoom() {
+const supabase = window.supabase.createClient(
+  "https://ehvusinvfwsaxguuebfc.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
+);
+
+async function createRoom() {
   const id = Math.random().toString(36).substring(2, 8);
+
+  await supabase.from("rooms").insert({
+    room_code: id,
+    expired: false
+  });
+
   location.href = `room.html?room=${id}`;
 }
 
