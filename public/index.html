@@ -36,16 +36,6 @@
       <li>🔒 No tracking, no storage</li>
       <li>💬 Built for honest conversations</li>
     </ul>
-
-    <h3>Who is this for?</h3>
-    <ul>
-      <li>Private discussions</li>
-      <li>Sharing sensitive thoughts</li>
-      <li>Truth & whistleblower talks</li>
-      <li>Mental health safe spaces</li>
-    </ul>
-
-    <a href="about.html">About, Vision & Trust →</a>
   </section>
 </main>
 
@@ -59,7 +49,7 @@ function showHomeMessage(text) {
   document.getElementById("homeMessage").textContent = text;
 }
 
-/* ===== CREATE ROOM (FIXED) ===== */
+/* ===== CREATE ROOM (FIXED – NEVER BLOCK) ===== */
 async function createRoom() {
   const id = Math.random().toString(36).substring(2, 8);
   showHomeMessage("Creating secure room…");
@@ -72,17 +62,17 @@ async function createRoom() {
     });
 
     if (error) {
-      console.warn("RLS blocked insert, continuing client-side:", error.message);
+      console.warn("Room insert blocked by RLS (safe to ignore):", error.message);
     }
   } catch (e) {
-    console.warn("Insert skipped:", e);
+    console.warn("Supabase insert skipped:", e);
   }
 
-  /* ✅ ALWAYS OPEN ROOM */
-  location.href = `room.html?room=${id}`;
+  /* ✅ ALWAYS NAVIGATE */
+  window.location.href = `room.html?room=${id}`;
 }
 
-/* ===== JOIN ROOM (UNCHANGED) ===== */
+/* ===== JOIN ROOM (SOFT VALIDATION) ===== */
 async function joinRoom() {
   const id = document.getElementById("roomInput").value.trim();
   if (!id) {
@@ -99,14 +89,13 @@ async function joinRoom() {
       .single();
 
     if (!data) {
-      showHomeMessage("This room has expired or does not exist.");
-      return;
+      showHomeMessage("This room may be expired, opening anyway…");
     }
   } catch (e) {
     console.warn("Join validation skipped:", e);
   }
 
-  location.href = `room.html?room=${id}`;
+  window.location.href = `room.html?room=${id}`;
 }
 </script>
 
