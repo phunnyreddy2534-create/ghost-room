@@ -54,7 +54,7 @@
     <div class="option">
       <strong>Room lifetime</strong>
 
-      <!-- Continuous time selector (UI only, logic compatible) -->
+      <!-- Continuous selector (UI only) -->
       <input
         type="range"
         id="lifetimeRange"
@@ -64,12 +64,18 @@
         class="range"
       />
 
+      <!-- ✅ MISSING #1: Explicit range -->
+      <small class="range-helper">
+        From <strong>1 minute</strong> to <strong>24 hours</strong>
+      </small>
+
       <div class="range-label" id="lifetimeLabel">
         This room will quietly disappear in <strong>30 minutes</strong>.
       </div>
 
+      <!-- ✅ MISSING #2: Inactivity expectation -->
       <small class="hint">
-        No countdown. No warnings.
+        No countdown. No warnings. Rooms may disappear sooner if left inactive.
       </small>
     </div>
 
@@ -84,7 +90,9 @@
 
     <div class="card-actions">
       <button id="cancelCreate" class="ghost-btn">Cancel</button>
-      <button id="confirmCreate" class="primary-btn">Create Room</button>
+
+      <!-- ✅ MISSING #3: Post-create expectation -->
+      <button id="confirmCreate" class="primary-btn">Create & Enter</button>
     </div>
 
   </div>
@@ -232,10 +240,17 @@ body{
   margin-top:14px;
 }
 
+.range-helper{
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  opacity:.6;
+}
+
 .range-label{
   margin-top:10px;
   font-size:14px;
-  opacity:.85;
+  opacity:.9;
 }
 
 .hint{
