@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#141633" />
 
-  <!-- Main styles -->
   <link rel="stylesheet" href="style.css" />
 
   <!-- PWA -->
@@ -15,9 +14,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-  <!-- Index-only refinements -->
   <style>
-    /* ===== Splash ===== */
     #appSplash{
       position:fixed;
       inset:0;
@@ -26,106 +23,12 @@
       align-items:center;
       justify-content:center;
       z-index:9999;
-      animation:fadeOut 0.8s ease forwards;
+      animation:fadeOut .8s ease forwards;
       animation-delay:2.4s;
     }
-    #appSplash svg{
-      width:88px;
-      height:88px;
-    }
+    @keyframes fadeOut{to{opacity:0;visibility:hidden}}
 
-    @keyframes fadeOut{
-      to{ opacity:0; visibility:hidden }
-    }
-
-    /* ===== Header ===== */
-    .top{
-      display:flex;
-      align-items:center;
-      padding:14px 18px;
-      background:rgba(10,11,20,.75);
-      backdrop-filter:blur(10px);
-      border-bottom:1px solid rgba(255,255,255,.06);
-    }
-
-    .logo{
-      display:flex;
-      align-items:center;
-      gap:12px;
-    }
-
-    .ira-logo{
-      width:34px;
-      height:34px;
-    }
-
-    .logo-text{
-      font-weight:600;
-      letter-spacing:.4px;
-    }
-
-    /* ===== Hero ===== */
-    .home{
-      padding:48px 20px 100px;
-      max-width:720px;
-      margin:0 auto;
-      text-align:left;
-    }
-
-    .hero-title{
-      font-size:36px;
-      line-height:1.15;
-      margin:0 0 12px;
-    }
-
-    .hero-sub{
-      font-size:16px;
-      line-height:1.6;
-      color:rgba(255,255,255,.65);
-      max-width:520px;
-    }
-
-    /* ===== Actions ===== */
-    .room-actions{
-      display:flex;
-      gap:14px;
-      margin-top:34px;
-      flex-wrap:wrap;
-    }
-
-    .room-actions button{
-      min-width:140px;
-    }
-
-    /* ===== Fade anchor ===== */
-    .fade-anchor{
-      position:fixed;
-      left:0;
-      right:0;
-      bottom:0;
-      height:160px;
-      pointer-events:none;
-      background:linear-gradient(
-        to bottom,
-        rgba(10,11,20,0),
-        rgba(10,11,20,.9)
-      );
-    }
-
-    /* ===== Animated logo wave ===== */
-    .ira-wave{
-      animation:waveMove 7s ease-in-out infinite;
-    }
-
-    @keyframes waveMove{
-      0%,100%{ transform:translateY(0) }
-      50%{ transform:translateY(-2px) }
-    }
-
-    @media (prefers-reduced-motion: reduce){
-      .ira-wave{ animation:none }
-      #appSplash{ animation:none }
-    }
+    .hero-title{font-size:36px;line-height:1.15}
   </style>
 </head>
 
@@ -133,40 +36,26 @@
 
 <!-- SPLASH -->
 <div id="appSplash">
-  <svg viewBox="0 0 100 100" aria-hidden="true">
-    <circle cx="50" cy="50" r="42"
-      fill="none"
-      stroke="#8E97FF"
-      stroke-width="4"/>
-    <path class="ira-wave"
-      d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
-      fill="none"
-      stroke="#6F7CFF"
-      stroke-width="3"
-      stroke-linecap="round"/>
+  <svg viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="42" fill="none" stroke="#8E97FF" stroke-width="4"/>
+    <path d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
+      fill="none" stroke="#6F7CFF" stroke-width="3" stroke-linecap="round"/>
   </svg>
 </div>
 
 <header class="top">
   <div class="logo">
-    <!-- Inline SVG for crisp animation -->
-    <svg class="ira-logo" viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="50" r="42"
-        fill="none"
-        stroke="#6F7CFF"
-        stroke-width="4"/>
+    <svg class="ira-logo" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="42" fill="none" stroke="#6F7CFF" stroke-width="4"/>
       <path class="ira-wave"
         d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
-        fill="none"
-        stroke="#8E97FF"
-        stroke-width="3"
-        stroke-linecap="round"/>
+        fill="none" stroke="#8E97FF" stroke-width="3" stroke-linecap="round"/>
     </svg>
     <span class="logo-text">IRA</span>
   </div>
 </header>
 
-<main class="home" role="main">
+<main class="home">
   <h1 class="hero-title">Speak freely.</h1>
 
   <p class="hero-sub">
@@ -174,12 +63,8 @@
   </p>
 
   <div class="room-actions">
-    <button class="primary-btn" id="createBtn">
-      Create Room
-    </button>
-    <button class="secondary-btn" id="joinBtn">
-      Join Room
-    </button>
+    <button class="primary-btn" id="createBtn">Create Room</button>
+    <button class="secondary-btn" id="joinBtn">Join Room</button>
   </div>
 
   <div id="statusMessage"
@@ -187,54 +72,6 @@
   </div>
 </main>
 
-<div class="fade-anchor"></div>
-
-<!-- Optional config -->
-<script src="config.js" defer></script>
-
-<script>
-  function makeRoomId(){
-    return Math.random().toString(36).slice(2,9);
-  }
-
-  function goToRoom(id){
-    location.href = `room.html?room=${encodeURIComponent(id)}`;
-  }
-
-  document.addEventListener("DOMContentLoaded", ()=>{
-    const createBtn = document.getElementById("createBtn");
-    const joinBtn = document.getElementById("joinBtn");
-    const status = document.getElementById("statusMessage");
-
-    createBtn.onclick = ()=>{
-      goToRoom(makeRoomId());
-    };
-
-    joinBtn.onclick = ()=>{
-      let code = prompt("Enter room code or link:");
-      if(!code) return;
-
-      try{
-        const u = new URL(code, location.href);
-        code = u.searchParams.get("room") || code;
-      }catch(e){}
-
-      code = code.trim();
-      if(code) goToRoom(code);
-    };
-
-    if("serviceWorker" in navigator){
-      navigator.serviceWorker.register("/sw.js")
-        .then(()=>{
-          status.textContent =
-            "You can install IRA from your browser menu.";
-        })
-        .catch(()=>{
-          status.textContent = "";
-        });
-    }
-  });
-</script>
 <!-- CREATE ROOM MODAL -->
 <div id="createRoomModal" class="modal hidden">
   <div class="glass-card">
@@ -242,20 +79,17 @@
     <h2>Create a quiet room</h2>
     <p class="subtitle">This room will disappear automatically.</p>
 
-    <!-- ROOM NAME -->
     <label class="field">
       <span>Room name (optional)</span>
       <input id="roomName" placeholder="A quiet space…" />
     </label>
 
-    <!-- DESCRIPTION -->
     <label class="field">
       <span>Description (optional)</span>
       <textarea id="roomDesc" rows="3"
         placeholder="What is this room for?"></textarea>
     </label>
 
-    <!-- DURATION -->
     <div class="field">
       <span>Room duration</span>
       <select id="roomDuration">
@@ -266,13 +100,11 @@
       </select>
     </div>
 
-    <!-- TERMS -->
     <label class="agree">
       <input type="checkbox" id="agreeTerms" />
       I understand this room will vanish and cannot be recovered
     </label>
 
-    <!-- ACTIONS -->
     <div class="card-actions">
       <button class="ghost-btn" id="cancelCreate">Cancel</button>
       <button class="primary-btn" id="confirmCreate">Create & Enter</button>
@@ -280,33 +112,56 @@
 
   </div>
 </div>
-  <script>
-/* ===== CREATE ROOM CARD LOGIC ===== */
 
-const createBtn = document.getElementById("createBtn");
-const modal = document.getElementById("createRoomModal");
-const cancelCreate = document.getElementById("cancelCreate");
-const confirmCreate = document.getElementById("confirmCreate");
+<script>
+/* ===== HELPERS ===== */
+function makeRoomId(){
+  return Math.random().toString(36).slice(2,9);
+}
+function goToRoom(id){
+  location.href = `room.html?room=${encodeURIComponent(id)}`;
+}
 
-createBtn.onclick = () => {
-  modal.classList.remove("hidden");
-};
+/* ===== UI LOGIC ===== */
+document.addEventListener("DOMContentLoaded", ()=>{
 
-cancelCreate.onclick = () => {
-  modal.classList.add("hidden");
-};
+  const createBtn = document.getElementById("createBtn");
+  const joinBtn = document.getElementById("joinBtn");
+  const modal = document.getElementById("createRoomModal");
+  const cancelCreate = document.getElementById("cancelCreate");
+  const confirmCreate = document.getElementById("confirmCreate");
 
-confirmCreate.onclick = () => {
-  const agreed = document.getElementById("agreeTerms").checked;
-  if(!agreed){
-    alert("Please confirm before creating the room.");
-    return;
-  }
+  // OPEN MODAL
+  createBtn.onclick = () => {
+    modal.classList.remove("hidden");
+  };
 
-  // 🔒 logic unchanged — only routing
-  const id = Math.random().toString(36).slice(2,9);
-  window.location.href = `room.html?room=${id}`;
-};
+  // CLOSE MODAL
+  cancelCreate.onclick = () => {
+    modal.classList.add("hidden");
+  };
+
+  // CONFIRM CREATE
+  confirmCreate.onclick = () => {
+    if(!document.getElementById("agreeTerms").checked){
+      alert("Please confirm before creating the room.");
+      return;
+    }
+    goToRoom(makeRoomId());
+  };
+
+  // JOIN ROOM
+  joinBtn.onclick = () => {
+    let code = prompt("Enter room code or link:");
+    if(!code) return;
+    try{
+      const u = new URL(code, location.href);
+      code = u.searchParams.get("room") || code;
+    }catch(e){}
+    if(code.trim()) goToRoom(code.trim());
+  };
+});
 </script>
+
 </body>
 </html>
