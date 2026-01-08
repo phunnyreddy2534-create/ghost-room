@@ -8,10 +8,10 @@
 
 <style>
 body{
+  margin:0;
   background:#050507;
   color:#fff;
   font-family:system-ui,Inter;
-  margin:0;
 }
 
 /* HEADER */
@@ -21,8 +21,17 @@ body{
   align-items:center;
   padding:12px 16px;
 }
+.header-right{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.timer-dot{
+  font-size:14px;
+  opacity:.8;
+}
 
-/* MENU */
+/* MENU BUTTON */
 .menu-btn{
   font-size:22px;
   background:none;
@@ -30,6 +39,7 @@ body{
   color:white;
 }
 
+/* MENU */
 .menu{
   position:fixed;
   inset:0;
@@ -37,6 +47,7 @@ body{
   display:flex;
   justify-content:center;
   align-items:flex-end;
+  z-index:1000;
 }
 .menu.hidden{display:none}
 .menu-card{
@@ -55,11 +66,7 @@ body{
   margin:8px 0;
 }
 
-/* STATUS BAR */
-.expiry-bar{
-  padding:12px 16px;
-  font-size:13px;
-}
+/* PROGRESS */
 .progress{
   height:6px;
   background:#1a1a28;
@@ -76,31 +83,20 @@ body{
 /* CHAT */
 .messages{
   padding:16px;
-  min-height:60vh;
+  min-height:65vh;
 }
-.msg{
-  margin-bottom:10px;
-  max-width:75%;
-}
+.msg{margin-bottom:10px;max-width:75%}
 .you{margin-left:auto;text-align:right}
-.system{
-  text-align:center;
-  opacity:.6;
-  font-size:13px;
-}
+.system{opacity:.6;text-align:center;font-size:13px}
 
 /* INPUT */
 .input-bar{
   display:flex;
-  padding:12px;
   gap:10px;
+  padding:12px;
   position:sticky;
   bottom:0;
   background:#050507;
-}
-.input-bar.blur{
-  filter:blur(2px);
-  pointer-events:none;
 }
 input{
   flex:1;
@@ -122,19 +118,15 @@ button{
 
 <header class="room-header">
   <div>👻 Ghost Room</div>
-  <button class="menu-btn" id="menuBtn">☰</button>
+  <div class="header-right">
+    <div class="timer-dot" id="miniTimer">⏳</div>
+    <button class="menu-btn" id="menuBtn">☰</button>
+  </div>
 </header>
-
-<div class="expiry-bar">
-  <div id="roomExpiryText">⏳ Room expires in —</div>
-  <div class="progress"><div id="roomExpiryBar"></div></div>
-  <div id="inactiveExpiryText">💤 Inactive expires in —</div>
-  <div class="progress"><div id="inactiveExpiryBar"></div></div>
-</div>
 
 <div class="messages" id="messages"></div>
 
-<div class="input-bar" id="inputBar">
+<div class="input-bar">
   <input id="msgInput" placeholder="Type a message…" />
   <button id="sendBtn">Send</button>
 </div>
@@ -142,74 +134,84 @@ button{
 <!-- MENU -->
 <div id="menu" class="menu hidden">
   <div class="menu-card">
-    <button id="shareBtn">🔗 Share Room</button>
-    <button onclick="alert('Rules coming soon')">📜 Room Rules</button>
-    <button id="exitBtn">🚪 Exit Room</button>
-    <button onclick="menu.classList.add('hidden')">Cancel</button>
+
+    <strong>⏳ Room expiry</strong>
+    <div id="roomExpiryText">—</div>
+    <div class="progress"><div id="roomExpiryBar"></div></div>
+
+    <strong>💤 Inactivity expiry</strong>
+    <div id="inactiveExpiryText">—</div>
+    <div class="progress"><div id="inactiveExpiryBar"></div></div>
+
+    <button id="shareBtn">🔗 Share room</button>
+    <button onclick="alert('Rules coming soon')">📜 Room rules</button>
+    <button id="exitBtn">🚪 Exit room</button>
+    <button id="closeMenu">Cancel</button>
   </div>
 </div>
 
 <script>
+/* ===== CONFIG ===== */
 const INACTIVITY_LIMIT_MS = 30*60*1000;
-const supabase = window.supabase.createClient(
-  "https://ehvusinvfwsaxguuebfc.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
-);
 
-const room = new URLSearchParams(location.search).get("room");
-const messagesEl = document.getElementById("messages");
-const msgInput = document.getElementById("msgInput");
-const inputBar = document.getElementById("inputBar");
+/* ===== DOM ===== */
+const menuBtn = document.getElementById("menuBtn");
 const menu = document.getElementById("menu");
+const closeMenu = document.getElementById("closeMenu");
+const exitBtn = document.getElementById("exitBtn");
+const shareBtn = document.getElementById("shareBtn");
+const sendBtn = document.getElementById("sendBtn");
+const msgInput = document.getElementById("msgInput");
+const messages = document.getElementById("messages");
+const miniTimer = document.getElementById("miniTimer");
 
+/* ===== STATE ===== */
 let lastActivity = Date.now();
 let expired = false;
 
-function addSystem(text){
-  const d=document.createElement("div");
-  d.className="msg system";
+/* ===== MENU ===== */
+menuBtn.onclick = () => menu.classList.remove("hidden");
+closeMenu.onclick = () => menu.classList.add("hidden");
+
+/* ===== EXIT ===== */
+exitBtn.onclick = () => location.href="/";
+
+/* ===== SHARE ===== */
+shareBtn.onclick = () =>
+  navigator.share
+    ? navigator.share({url:location.href})
+    : navigator.clipboard.writeText(location.href);
+
+/* ===== SEND ===== */
+sendBtn.onclick = () => {
+  const text = msgInput.value.trim();
+  if(!text) return;
+  lastActivity = Date.now();
+  const d = document.createElement("div");
+  d.className="msg you";
   d.textContent=text;
-  messagesEl.appendChild(d);
-}
-
-function expire(){
-  if(expired) return;
-  expired=true;
-  addSystem("👻 This room has faded away.");
-  setTimeout(()=>location.href="/",2500);
-}
-
-function update(textId,barId,ms,total){
-  const m=Math.floor(ms/60000);
-  const s=Math.floor((ms%60000)/1000);
-  document.getElementById(textId).textContent=`${m}m ${s}s`;
-  document.getElementById(barId).style.width=Math.max(0,(ms/total)*100)+"%";
-}
-
-setInterval(()=>{
-  const now=Date.now();
-  const inactiveLeft = INACTIVITY_LIMIT_MS - (now-lastActivity);
-  update("inactiveExpiryText","inactiveExpiryBar",inactiveLeft,INACTIVITY_LIMIT_MS);
-  if(inactiveLeft<10000) inputBar.classList.add("blur");
-  if(inactiveLeft<=0) expire();
-},1000);
-
-document.getElementById("sendBtn").onclick=()=>{
-  const val=msgInput.value.trim();
-  if(!val) return;
-  lastActivity=Date.now();
-  const m=document.createElement("div");
-  m.className="msg you";
-  m.textContent=val;
-  messagesEl.appendChild(m);
+  messages.appendChild(d);
   msgInput.value="";
 };
 
-menuBtn.onclick=()=>menu.classList.remove("hidden");
-exitBtn.onclick=()=>location.href="/";
-shareBtn.onclick=()=>navigator.share
-  ? navigator.share({url:location.href})
-  : navigator.clipboard.writeText(location.href);
+/* ===== TIMER ===== */
+setInterval(()=>{
+  const now = Date.now();
+  const inactiveLeft = INACTIVITY_LIMIT_MS - (now-lastActivity);
+
+  const m = Math.max(0,Math.floor(inactiveLeft/60000));
+  const s = Math.max(0,Math.floor((inactiveLeft%60000)/1000));
+
+  document.getElementById("inactiveExpiryText").textContent = `${m}m ${s}s`;
+  document.getElementById("inactiveExpiryBar").style.width = `${(inactiveLeft/INACTIVITY_LIMIT_MS)*100}%`;
+  miniTimer.textContent = `⏳ ${m}m`;
+
+  if(inactiveLeft<=0 && !expired){
+    expired=true;
+    messages.innerHTML += `<div class="msg system">👻 Room faded away</div>`;
+    setTimeout(()=>location.href="/",2500);
+  }
+},1000);
 </script>
 
 </body>
