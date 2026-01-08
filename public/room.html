@@ -9,18 +9,17 @@
 <style>
 :root{
   --accent:#6d5dfc;
-  --accent-soft:#9b8cff;
   --bg:#050507;
-  --card:#121222;
+  --panel:#121222;
+  --soft:#1a1a28;
 }
-
-*{box-sizing:border-box}
 
 body{
   margin:0;
-  background:radial-gradient(circle at top,#0b0b18,#050507);
+  background:radial-gradient(1200px 600px at top,#0b0b14,#050507);
   color:#fff;
-  font-family:Inter,system-ui;
+  font-family:system-ui,Inter;
+  overflow-x:hidden;
 }
 
 /* HEADER */
@@ -28,17 +27,21 @@ body{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:12px 16px;
+  padding:14px 16px;
 }
 .header-right{
   display:flex;
   align-items:center;
   gap:12px;
 }
-.timer-dot{
+.mini-timer{
   font-size:13px;
   opacity:.8;
-  transition:opacity .4s;
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:.5}
+  50%{opacity:1}
 }
 
 /* MENU BUTTON */
@@ -49,69 +52,57 @@ body{
   color:white;
 }
 
-/* EMPTY STATE */
-.empty{
-  text-align:center;
-  opacity:.45;
-  margin-top:30vh;
-  font-size:14px;
-  animation:fadeIn .4s ease;
-}
-
 /* CHAT */
 .messages{
-  padding:16px;
+  padding:20px 16px;
   min-height:65vh;
 }
 .msg{
-  margin-bottom:10px;
+  margin-bottom:12px;
   max-width:75%;
-  animation:msgIn .15s ease;
+  line-height:1.4;
 }
-@keyframes msgIn{
-  from{opacity:0;transform:translateY(6px)}
-  to{opacity:1;transform:none}
+.you{
+  margin-left:auto;
+  text-align:right;
 }
-.you{margin-left:auto;text-align:right}
 .system{
-  opacity:.5;
   text-align:center;
   font-size:13px;
+  opacity:.6;
+  margin:20px 0;
 }
 
 /* INPUT */
 .input-bar{
   display:flex;
   gap:10px;
-  padding:12px;
+  padding:14px;
   position:sticky;
   bottom:0;
-  background:linear-gradient(to top,#050507,#050507cc);
-  transition:.4s;
-}
-.input-bar.fading{
-  opacity:.4;
-  pointer-events:none;
+  background:linear-gradient(180deg,transparent,#050507 40%);
 }
 input{
   flex:1;
-  padding:12px;
+  padding:14px;
   border-radius:16px;
   border:none;
 }
 button{
-  padding:12px 16px;
+  padding:14px 18px;
   border:none;
   border-radius:16px;
-  background:linear-gradient(135deg,var(--accent),var(--accent-soft));
+  background:linear-gradient(135deg,#6d5dfc,#9b8cff);
   color:white;
+  font-weight:600;
 }
 
-/* MENU */
+/* MENU OVERLAY */
 .menu{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.6);
+  background:rgba(0,0,0,.65);
+  backdrop-filter:blur(8px);
   display:flex;
   justify-content:center;
   align-items:flex-end;
@@ -120,21 +111,15 @@ button{
 .menu.hidden{display:none}
 .menu-card{
   width:100%;
-  background:linear-gradient(180deg,#1a1a2e,#0f0f1c);
-  border-radius:24px 24px 0 0;
+  background:linear-gradient(180deg,#17172b,#0f0f1e);
+  border-radius:22px 22px 0 0;
   padding:22px;
-  box-shadow:0 -20px 40px rgba(0,0,0,.6);
-  animation:slideUp .3s ease;
+  animation:slideUp .35s ease;
+  box-shadow:0 -20px 60px rgba(0,0,0,.6);
 }
 @keyframes slideUp{
   from{transform:translateY(100%)}
   to{transform:none}
-}
-.menu-card strong{
-  display:block;
-  margin-top:12px;
-  font-size:14px;
-  opacity:.8;
 }
 .menu-card button{
   width:100%;
@@ -144,28 +129,23 @@ button{
 /* PROGRESS */
 .progress{
   height:6px;
-  background:#1a1a28;
+  background:var(--soft);
   border-radius:6px;
   overflow:hidden;
-  margin:6px 0 12px;
+  margin:8px 0 16px;
 }
 .progress div{
   height:100%;
-  background:linear-gradient(135deg,var(--accent),var(--accent-soft));
-  transition:width 1s linear,opacity .6s;
+  background:linear-gradient(135deg,#6d5dfc,#9b8cff);
+  transition:width 1s linear;
 }
 
-/* RULES MODAL */
-.rules{
-  font-size:14px;
-  opacity:.75;
-  line-height:1.5;
-}
-
-/* ANIMATIONS */
-@keyframes fadeIn{
-  from{opacity:0}
-  to{opacity:.45}
+/* EXIT TRUST CARD */
+.trust{
+  text-align:center;
+  font-size:13px;
+  opacity:.7;
+  margin-bottom:10px;
 }
 </style>
 </head>
@@ -173,19 +153,17 @@ button{
 <body>
 
 <header class="room-header">
-  <div>👻 Ghost Room <span style="opacity:.4">🕯</span></div>
+  <div>👻 Ghost Room</div>
   <div class="header-right">
-    <div class="timer-dot" id="miniTimer">⏳</div>
+    <div class="mini-timer" id="miniTimer">⏳</div>
     <button class="menu-btn" id="menuBtn">☰</button>
   </div>
 </header>
 
-<div class="messages" id="messages">
-  <div class="empty" id="emptyState">The room is quiet.</div>
-</div>
+<div class="messages" id="messages"></div>
 
-<div class="input-bar" id="inputBar">
-  <input id="msgInput" placeholder="Type a message…" />
+<div class="input-bar">
+  <input id="msgInput" placeholder="Type without being known…" />
   <button id="sendBtn">Send</button>
 </div>
 
@@ -202,76 +180,59 @@ button{
     <div class="progress"><div id="inactiveExpiryBar"></div></div>
 
     <button id="shareBtn">🔗 Share quietly</button>
-    <button id="rulesBtn">📜 Room rules</button>
+    <button onclick="alert('• Anonymous\n• No history\n• Silence is allowed')">📜 Room rules</button>
+
+    <div class="trust">
+      Leaving deletes nothing — because nothing is saved.
+    </div>
+
     <button id="exitBtn">🚪 Leave without a trace</button>
     <button id="closeMenu">Cancel</button>
   </div>
 </div>
 
-<!-- RULES -->
-<div id="rulesModal" class="menu hidden">
-  <div class="menu-card rules">
-    <strong>Room rules</strong>
-    <p>
-      • No accounts<br>
-      • No message history after expiry<br>
-      • Silence is allowed<br>
-      • Rooms disappear naturally
-    </p>
-    <button onclick="rulesModal.classList.add('hidden')">Close</button>
-  </div>
-</div>
-
 <script>
-/* ===== CONFIG ===== */
+/* CONFIG */
 const INACTIVITY_LIMIT_MS = 30*60*1000;
 
-/* ===== DOM ===== */
+/* DOM */
 const menuBtn = document.getElementById("menuBtn");
 const menu = document.getElementById("menu");
 const closeMenu = document.getElementById("closeMenu");
 const exitBtn = document.getElementById("exitBtn");
 const shareBtn = document.getElementById("shareBtn");
-const rulesBtn = document.getElementById("rulesBtn");
-const rulesModal = document.getElementById("rulesModal");
 const sendBtn = document.getElementById("sendBtn");
 const msgInput = document.getElementById("msgInput");
 const messages = document.getElementById("messages");
 const miniTimer = document.getElementById("miniTimer");
-const inputBar = document.getElementById("inputBar");
-const emptyState = document.getElementById("emptyState");
 
-/* ===== STATE ===== */
+/* STATE */
 let lastActivity = Date.now();
 let expired = false;
 
-/* ===== MENU ===== */
-menuBtn.onclick = () => menu.classList.remove("hidden");
-closeMenu.onclick = () => menu.classList.add("hidden");
+/* ENTRY RITUAL */
+addSystem("👻 You are anonymous here. Silence is allowed.");
 
-/* ===== RULES ===== */
-rulesBtn.onclick = () => {
-  menu.classList.add("hidden");
-  rulesModal.classList.remove("hidden");
+/* MENU */
+menuBtn.onclick = ()=>menu.classList.remove("hidden");
+closeMenu.onclick = ()=>menu.classList.add("hidden");
+
+/* EXIT */
+exitBtn.onclick = ()=>{
+  addSystem("👻 You left without a trace.");
+  setTimeout(()=>location.href="/",1200);
 };
 
-/* ===== EXIT ===== */
-exitBtn.onclick = () => location.href="/";
+/* SHARE */
+shareBtn.onclick = ()=>navigator.share
+  ? navigator.share({url:location.href})
+  : navigator.clipboard.writeText(location.href);
 
-/* ===== SHARE ===== */
-shareBtn.onclick = () =>
-  navigator.share
-    ? navigator.share({url:location.href})
-    : navigator.clipboard.writeText(location.href);
-
-/* ===== SEND ===== */
-sendBtn.onclick = () => {
+/* SEND */
+sendBtn.onclick = ()=>{
   const text = msgInput.value.trim();
   if(!text) return;
-
   lastActivity = Date.now();
-  emptyState.remove();
-
   const d = document.createElement("div");
   d.className="msg you";
   d.textContent=text;
@@ -279,7 +240,15 @@ sendBtn.onclick = () => {
   msgInput.value="";
 };
 
-/* ===== TIMER ENGINE ===== */
+/* SYSTEM MSG */
+function addSystem(t){
+  const d=document.createElement("div");
+  d.className="msg system";
+  d.textContent=t;
+  messages.appendChild(d);
+}
+
+/* TIMER */
 setInterval(()=>{
   const now = Date.now();
   const inactiveLeft = INACTIVITY_LIMIT_MS - (now-lastActivity);
@@ -288,20 +257,13 @@ setInterval(()=>{
   const s = Math.max(0,Math.floor((inactiveLeft%60000)/1000));
 
   document.getElementById("inactiveExpiryText").textContent = `${m}m ${s}s`;
-  document.getElementById("inactiveExpiryBar").style.width =
-    `${Math.max(0,(inactiveLeft/INACTIVITY_LIMIT_MS)*100)}%`;
-
+  document.getElementById("inactiveExpiryBar").style.width = `${(inactiveLeft/INACTIVITY_LIMIT_MS)*100}%`;
   miniTimer.textContent = `⏳ ${m}m`;
-
-  if(inactiveLeft < 2*60*1000){
-    miniTimer.style.opacity = .4;
-    inputBar.classList.add("fading");
-  }
 
   if(inactiveLeft<=0 && !expired){
     expired=true;
-    messages.innerHTML += `<div class="msg system">👻 The room has faded away.</div>`;
-    setTimeout(()=>location.href="/",2500);
+    addSystem("👻 This room has been forgotten.");
+    setTimeout(()=>location.href="/",2000);
   }
 },1000);
 </script>
