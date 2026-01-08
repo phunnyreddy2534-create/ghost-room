@@ -3,9 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <title>IRA</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <!-- Mobile & PWA -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#141633" />
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- App Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Config -->
   <script src="config.js"></script>
 </head>
 
@@ -13,17 +26,15 @@
 
 <header class="top">
   <div class="logo">
-    <svg class="ira-logo" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r="42" fill="none" stroke="#6F7CFF" stroke-width="4"/>
-      <path d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
-        fill="none" stroke="#6F7CFF" stroke-width="3" stroke-linecap="round"/>
-    </svg>
+    <!-- Use SAME logo everywhere -->
+    <img src="assets/ira-logo.svg" alt="IRA logo" class="ira-logo" />
     <span class="logo-text">IRA</span>
   </div>
 </header>
 
 <main class="home">
   <h1>Speak freely.</h1>
+
   <p class="hero-sub">
     Private rooms that appear quietly — and vanish without a trace.
   </p>
@@ -34,16 +45,28 @@
   </div>
 </main>
 
+<!-- Core Logic -->
 <script>
-function createRoom(){
-  const id = Math.random().toString(36).substring(2,8);
-  location.href = `room.html?room=${id}`;
-}
+  function createRoom() {
+    const id = Math.random().toString(36).substring(2, 8);
+    location.href = `room.html?room=${id}`;
+  }
 
-function joinRoom(){
-  const code = prompt("Enter room code");
-  if(code) location.href = `room.html?room=${code}`;
-}
+  function joinRoom() {
+    const code = prompt("Enter room code");
+    if (code) {
+      location.href = `room.html?room=${code}`;
+    }
+  }
+</script>
+
+<!-- Service Worker -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js");
+    });
+  }
 </script>
 
 </body>
