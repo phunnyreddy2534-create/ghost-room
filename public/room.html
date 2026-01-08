@@ -6,6 +6,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="style.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+/* ===== EXPIRY BAR ===== */
+.expiry-bar{
+  padding:10px 14px;
+  font-size:13px;
+  opacity:.85;
+}
+.expiry-row{
+  margin-bottom:6px;
+}
+.progress{
+  height:6px;
+  border-radius:6px;
+  background:#1a1a28;
+  overflow:hidden;
+  margin-top:4px;
+}
+.progress > div{
+  height:100%;
+  background:linear-gradient(135deg,#6d5dfc,#9b8cff);
+  width:100%;
+  transition:width .5s linear;
+}
+</style>
 </head>
 
 <body>
@@ -18,8 +43,16 @@
   </div>
 </header>
 
-<div class="room-id" id="roomId"></div>
+<!-- 🔥 EXPIRY STATUS -->
+<div class="expiry-bar">
+  <div class="expiry-row" id="roomExpiryText">⏳ Room expires in —</div>
+  <div class="progress"><div id="roomExpiryBar"></div></div>
 
+  <div class="expiry-row" id="inactiveExpiryText">💤 Inactive expires in —</div>
+  <div class="progress"><div id="inactiveExpiryBar"></div></div>
+</div>
+
+<div class="room-id" id="roomId"></div>
 <div class="messages" id="messages"></div>
 
 <div class="input-bar">
@@ -30,6 +63,9 @@
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
 
+  /* ===== CONFIG ===== */
+  const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 minutes
+
   /* ===== SUPABASE ===== */
   const supabase = window.supabase.createClient(
     "https://ehvusinvfwsaxguuebfc.supabase.co",
@@ -39,39 +75,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   const room = new URLSearchParams(location.search).get("room");
   if (!room) location.href = "/";
 
-  /* ======================================================
-     🔒 NEW: ROOM EXPIRY VALIDATION (SAFE ADDITION)
-     ====================================================== */
-  const { data: roomData, error: roomError } = await supabase
+  const { data: roomData } = await supabase
     .from("rooms")
     .select("expires_at, expired")
     .eq("room_code", room)
     .single();
 
-  // If room not found OR explicitly expired
-  if (!roomData || roomData.expired === true) {
-    alert("This room has expired.");
-    location.href = "/";
-    return;
-  }
+  if (!roomData || roomData.expired) expireRoom();
 
-  // If expires_at exists, enforce time expiry
-  if (roomData.expires_at) {
-    const now = new Date();
-    const expiresAt = new Date(roomData.expires_at);
-    if (now > expiresAt) {
-      alert("This room has expired.");
-      location.href = "/";
-      return;
-    }
-  }
-  /* ===== END EXPIRY VALIDATION ===== */
+  const roomExpiresAt = roomData.expires_at
+    ? new Date(roomData.expires_at).getTime()
+    : null;
 
   const roomIdEl = document.getElementById("roomId");
   const messagesBox = document.getElementById("messages");
   const input = document.getElementById("msgInput");
 
   roomIdEl.textContent = "Room ID: " + room;
+
+  let lastActivityTime = Date.now();
 
   /* ===== CLIENT ID ===== */
   let clientId = sessionStorage.getItem("ghost_client_id");
@@ -80,24 +102,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     sessionStorage.setItem("ghost_client_id", clientId);
   }
 
-  /* ===== LOCAL CACHE KEY ===== */
+  /* ===== CACHE ===== */
   const cacheKey = `ghost_messages_${room}`;
+  const getCachedMessages = () => JSON.parse(localStorage.getItem(cacheKey) || "[]");
+  const saveCachedMessage = m => {
+    const c = getCachedMessages();
+    c.push(m);
+    localStorage.setItem(cacheKey, JSON.stringify(c));
+  };
 
-  function getCachedMessages() {
-    try {
-      return JSON.parse(localStorage.getItem(cacheKey)) || [];
-    } catch {
-      return [];
-    }
-  }
-
-  function saveCachedMessage(msg) {
-    const cache = getCachedMessages();
-    cache.push(msg);
-    localStorage.setItem(cacheKey, JSON.stringify(cache));
-  }
-
-  /* ===== MESSAGE UI ===== */
   function addMessage(text, sender, time) {
     const div = document.createElement("div");
     div.className = "msg " + (sender === clientId ? "you" : "other");
@@ -106,42 +119,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     messagesBox.scrollTop = messagesBox.scrollHeight;
   }
 
-  /* ===== LOAD FROM CACHE FIRST ===== */
-  const cached = getCachedMessages();
-  cached.forEach(m => addMessage(m.text, m.sender, m.time));
+  getCachedMessages().forEach(m => addMessage(m.text,m.sender,m.time));
 
-  /* ===== LOAD FROM DATABASE ===== */
   const { data: history } = await supabase
     .from("messages")
     .select("*")
     .eq("room_code", room)
-    .order("created_at", { ascending: true });
+    .order("created_at",{ascending:true});
 
-  history?.forEach(m => {
+  history?.forEach(m=>{
     addMessage(
       m.content,
       m.client_id,
-      new Date(m.created_at).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      })
+      new Date(m.created_at).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})
     );
+    lastActivityTime = Date.now();
   });
 
-  /* ===== CHANNEL ===== */
   const roomChannel = supabase.channel(`room-${room}`);
 
-  /* ===== SEND ===== */
   document.getElementById("sendBtn").onclick = async () => {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
 
-    const time = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit"
-    });
+    lastActivityTime = Date.now();
 
+    const time = new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
     addMessage(text, clientId, time);
     saveCachedMessage({ text, sender: clientId, time });
 
@@ -152,45 +156,69 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
-  /* ===== REALTIME ===== */
-  roomChannel.on(
-    "postgres_changes",
-    { event: "INSERT", schema: "public", table: "messages", filter: `room_code=eq.${room}` },
-    payload => {
-      if (payload.new.client_id === clientId) return;
-      const time = new Date(payload.new.created_at).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-      addMessage(payload.new.content, payload.new.client_id, time);
-      saveCachedMessage({
-        text: payload.new.content,
-        sender: payload.new.client_id,
-        time
-      });
+  roomChannel.on("postgres_changes",
+    {event:"INSERT",schema:"public",table:"messages",filter:`room_code=eq.${room}`},
+    payload=>{
+      if(payload.new.client_id===clientId) return;
+      lastActivityTime = Date.now();
+      const time = new Date(payload.new.created_at).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+      addMessage(payload.new.content,payload.new.client_id,time);
+      saveCachedMessage({text:payload.new.content,sender:payload.new.client_id,time});
     }
   );
 
   await roomChannel.subscribe();
 
-  /* ===== EXIT ===== */
-  document.getElementById("exitBtn").onclick = () => {
-    if (confirm(
-      "Leave Ghost Room?\n\n" +
-      "• Messages auto-delete after expiry\n" +
-      "• Room expires automatically\n\n" +
-      "Thank you for using Ghost Room 👻"
-    )) {
-      location.href = "/";
-    }
-  };
+  /* ===== COUNTDOWN ENGINE ===== */
+  setInterval(()=>{
+    const now = Date.now();
 
-  document.getElementById("shareBtn").onclick = async () => {
-    if (navigator.share) {
-      navigator.share({ title: "Ghost Room", url: location.href });
-    } else {
-      await navigator.clipboard.writeText(location.href);
+    if(roomExpiresAt){
+      const remaining = roomExpiresAt - now;
+      if(remaining<=0) expireRoom();
+      updateTimer(
+        remaining,
+        roomExpiresAt - (roomExpiresAt - remaining),
+        "roomExpiryText",
+        "roomExpiryBar",
+        "⏳ Room expires in"
+      );
     }
+
+    const inactiveRemaining = INACTIVITY_LIMIT_MS - (now - lastActivityTime);
+    if(inactiveRemaining<=0) expireRoom();
+
+    updateTimer(
+      inactiveRemaining,
+      INACTIVITY_LIMIT_MS,
+      "inactiveExpiryText",
+      "inactiveExpiryBar",
+      "💤 Inactive expires in"
+    );
+
+  },1000);
+
+  function updateTimer(ms,total,textId,barId,label){
+    const m = Math.floor(ms/60000);
+    const s = Math.floor((ms%60000)/1000);
+    document.getElementById(textId).textContent =
+      `${label}: ${m}m ${s}s`;
+    document.getElementById(barId).style.width =
+      Math.max(0,(ms/total)*100)+"%";
+  }
+
+  function expireRoom(){
+    alert("👻 This room has faded away.");
+    localStorage.removeItem(cacheKey);
+    location.href="/";
+  }
+
+  document.getElementById("exitBtn").onclick = ()=>location.href="/";
+
+  document.getElementById("shareBtn").onclick = async ()=>{
+    navigator.share
+      ? navigator.share({title:"Ghost Room",url:location.href})
+      : navigator.clipboard.writeText(location.href);
   };
 
 });
