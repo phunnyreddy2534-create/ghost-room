@@ -280,5 +280,33 @@
 
   </div>
 </div>
+  <script>
+/* ===== CREATE ROOM CARD LOGIC ===== */
+
+const createBtn = document.getElementById("createBtn");
+const modal = document.getElementById("createRoomModal");
+const cancelCreate = document.getElementById("cancelCreate");
+const confirmCreate = document.getElementById("confirmCreate");
+
+createBtn.onclick = () => {
+  modal.classList.remove("hidden");
+};
+
+cancelCreate.onclick = () => {
+  modal.classList.add("hidden");
+};
+
+confirmCreate.onclick = () => {
+  const agreed = document.getElementById("agreeTerms").checked;
+  if(!agreed){
+    alert("Please confirm before creating the room.");
+    return;
+  }
+
+  // 🔒 logic unchanged — only routing
+  const id = Math.random().toString(36).slice(2,9);
+  window.location.href = `room.html?room=${id}`;
+};
+</script>
 </body>
 </html>
