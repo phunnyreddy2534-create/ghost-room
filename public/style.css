@@ -268,3 +268,37 @@ button:active{
     font-size:17px;
   }
 }
+/* ================= SPLASH SCREEN ================= */
+
+#appSplash{
+  position:fixed;
+  inset:0;
+  background:radial-gradient(circle at top,#161844,#050507 70%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:5000;
+  animation:splashFadeOut 0.8s ease forwards;
+  animation-delay:1.6s;
+}
+
+#appSplash img{
+  width:140px;
+  height:140px;
+  animation:logoBreath 1.6s ease-in-out infinite;
+}
+
+/* logo breathing */
+@keyframes logoBreath{
+  0%{transform:scale(0.96);opacity:0.85}
+  50%{transform:scale(1.02);opacity:1}
+  100%{transform:scale(0.96);opacity:0.85}
+}
+
+/* splash exit */
+@keyframes splashFadeOut{
+  to{
+    opacity:0;
+    visibility:hidden;
+  }
+}
