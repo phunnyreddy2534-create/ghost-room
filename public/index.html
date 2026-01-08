@@ -1,73 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>IRA</title>
-
-  <!-- Mobile & PWA -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta charset="utf-8" />
+  <title>IRA — Silent Anonymous Rooms</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#141633" />
 
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- App Icons -->
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
-
-  <!-- Styles -->
+  <!-- Styles (keeps using your style.css) -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Config -->
-  <script src="config.js"></script>
+  <!-- PWA manifest + icons -->
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <!-- prefer svg logo loaded from assets -->
+  <style>
+    /* Small local styles to ensure header looks good even if style.css hasn't loaded */
+    .top{display:flex;align-items:center;padding:14px 18px;background:rgba(10,11,20,.85);backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,.04)}
+    .logo{display:flex;align-items:center;gap:12px}
+    .ira-logo{width:36px;height:36px}
+    .logo-text{font-weight:600;color:#fff}
+    .home{padding:40px 20px;text-align:center}
+    .room-actions{display:flex;gap:12px;justify-content:center;margin-top:28px}
+    .primary-btn,.secondary-btn{padding:12px 18px;border-radius:12px;border:0;font-weight:600;cursor:pointer}
+    .primary-btn{background:linear-gradient(135deg,#6F7CFF,#8E97FF);color:#fff}
+    .secondary-btn{background:transparent;border:1px solid rgba(255,255,255,.06);color:#ddd}
+    @media (min-width:720px){ .home{padding:80px 40px} }
+  </style>
 </head>
 
 <body>
+  <header class="top">
+    <div class="logo" title="IRA">
+      <!-- loads from /assets/ira-logo.svg (keep this file in public/assets/) -->
+      <img src="/assets/ira-logo.svg" alt="IRA logo" class="ira-logo" onerror="this.onerror=null;this.src='/ira-logo.png'">
+      <span class="logo-text">IRA</span>
+    </div>
+  </header>
 
-<header class="top">
-  <div class="logo">
-    <!-- Use SAME logo everywhere -->
-    <img src="assets/ira-logo.svg" alt="IRA logo" class="ira-logo" />
-    <span class="logo-text">IRA</span>
-  </div>
-</header>
+  <main class="home" role="main" aria-labelledby="hero-title">
+    <h1 id="hero-title" style="color:#fff;font-size:28px;margin:0 0 12px">Speak freely.</h1>
+    <p class="hero-sub" style="color:rgba(255,255,255,.65);max-width:720px;margin:0 auto">
+      Private rooms that appear quietly — and vanish without a trace.
+    </p>
 
-<main class="home">
-  <h1>Speak freely.</h1>
+    <div class="room-actions">
+      <button class="primary-btn" id="createBtn" aria-label="Create a room">Create Room</button>
+      <button class="secondary-btn" id="joinBtn" aria-label="Join a room">Join Room</button>
+    </div>
 
-  <p class="hero-sub">
-    Private rooms that appear quietly — and vanish without a trace.
-  </p>
+    <div id="statusMessage" style="margin-top:18px;color:rgba(255,255,255,.5);font-size:13px"></div>
+  </main>
 
-  <div class="room-actions">
-    <button class="primary-btn" onclick="createRoom()">Create Room</button>
-    <button class="secondary-btn" onclick="joinRoom()">Join Room</button>
-  </div>
-</main>
+  <!-- config.js will provide IRA_CONFIG if you keep using it. It's optional for index page but safe to include. -->
+  <script src="config.js" defer></script>
 
-<!-- Core Logic -->
-<script>
-  function createRoom() {
-    const id = Math.random().toString(36).substring(2, 8);
-    location.href = `room.html?room=${id}`;
-  }
-
-  function joinRoom() {
-    const code = prompt("Enter room code");
-    if (code) {
-      location.href = `room.html?room=${code}`;
+  <script>
+    // utility: create a short human-friendly id
+    function makeRoomId(){
+      return Math.random().toString(36).slice(2,9);
     }
-  }
-</script>
 
-<!-- Service Worker -->
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js");
+    function goToRoom(id){
+      // navigate to room page with the code
+      const url = `room.html?room=${encodeURIComponent(id)}`;
+      location.href = url;
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const createBtn = document.getElementById('createBtn');
+      const joinBtn = document.getElementById('joinBtn');
+      const status = document.getElementById('statusMessage');
+
+      createBtn.addEventListener('click', ()=>{
+        const id = makeRoomId();
+        goToRoom(id);
+      });
+
+      joinBtn.addEventListener('click', async ()=>{
+        // friendly prompt (mobile-friendly)
+        let code = prompt("Enter room code (paste code or link):");
+        if(!code) return;
+
+        // if user pasted a full URL, try to extract room query param
+        try {
+          const u = new URL(code, location.href);
+          const param = u.searchParams.get('room');
+          if(param) code = param;
+        } catch(e){ /* not a URL, keep raw string */ }
+
+        code = code.trim();
+        if(!code){
+          alert("Invalid room code.");
+          return;
+        }
+        goToRoom(code);
+      });
+
+      // small check: service worker + manifest availability and hint
+      if('serviceWorker' in navigator){
+        // register if file exists (sw.js)
+        navigator.serviceWorker.register('/sw.js').then(reg=>{
+          console.info('SW registered', reg);
+          status.textContent = "App ready to install (PWA) — try Add to Home Screen from your browser menu.";
+        }).catch(err=>{
+          console.warn('SW registration failed:', err);
+          status.textContent = "PWA service worker not registered.";
+        });
+      } else {
+        status.textContent = "Your browser doesn't support service workers (PWA features disabled).";
+      }
     });
-  }
-</script>
-
+  </script>
 </body>
 </html>
