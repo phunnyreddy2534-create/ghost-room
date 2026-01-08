@@ -1,47 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>IRA Room</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>IRA — Room</title>
 
-<link rel="stylesheet" href="style.css">
-<script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#141633" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <!-- Config + Supabase -->
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-<header class="room-header">
-  <div class="header-left">
-    <svg class="ira-logo" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r="42" fill="none" stroke="#6F7CFF" stroke-width="4"/>
-      <path d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
-        fill="none" stroke="#6F7CFF" stroke-width="3" stroke-linecap="round"/>
-    </svg>
-    <span class="logo-text">IRA</span>
+  <!-- ================= HEADER ================= -->
+  <header class="room-header">
+    <div class="header-left">
+      <!-- SVG LOGO (unchanged logic) -->
+      <svg class="ira-logo" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#6F7CFF" stroke-width="4"/>
+        <path
+          d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
+          fill="none"
+          stroke="#6F7CFF"
+          stroke-width="3"
+          stroke-linecap="round"
+        />
+      </svg>
+      <span class="logo-text">IRA</span>
+    </div>
+
+    <!-- Menu Button -->
+    <button id="menuBtn" class="menu-btn" aria-label="Open menu">
+      ☰
+    </button>
+  </header>
+
+  <!-- ================= CHAT ================= -->
+  <main class="messages" id="messages" role="log" aria-live="polite">
+    <div class="system">
+      You are anonymous here. Silence is allowed.
+    </div>
+  </main>
+
+  <!-- ================= INPUT ================= -->
+  <footer class="input-bar">
+    <input
+      id="msgInput"
+      type="text"
+      placeholder="Type without being known…"
+      autocomplete="off"
+      aria-label="Message input"
+    />
+    <button id="sendBtn" class="primary-btn" aria-label="Send message">
+      Send
+    </button>
+  </footer>
+
+  <!-- ================= MENU OVERLAY ================= -->
+  <div id="menuOverlay" class="menu-overlay" aria-hidden="true">
+    <div class="menu" role="menu">
+      <div class="menu-item" role="menuitem">
+        🔗 <span id="shareBtn">Share quietly</span>
+      </div>
+
+      <div class="menu-item danger" role="menuitem">
+        <span id="exitBtn">Leave room</span>
+      </div>
+    </div>
   </div>
-  <button id="menuBtn" class="menu-btn">☰</button>
-</header>
 
-<div class="messages" id="messages">
-  <div class="system">You are anonymous here. Silence is allowed.</div>
-</div>
-
-<div class="input-bar">
-  <input id="msgInput" placeholder="Type without being known…">
-  <button id="sendBtn">Send</button>
-</div>
-
-<div id="menuOverlay" class="menu-overlay">
-  <div class="menu">
-    <div class="menu-item">🔗 <span id="shareBtn">Share quietly</span></div>
-    <div class="menu-item danger"><span id="exitBtn">Leave room</span></div>
-  </div>
-</div>
-
-<!-- CONTROLLER -->
-<script type="module" src="services/roomController.js"></script>
+  <!-- ================= CONTROLLER ================= -->
+  <!-- DO NOT TOUCH: your logic stays here -->
+  <script type="module" src="services/roomController.js"></script>
 
 </body>
 </html>
