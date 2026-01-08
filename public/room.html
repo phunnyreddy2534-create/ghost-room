@@ -7,7 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-/* ===== BASE ===== */
 body{
   margin:0;
   background:radial-gradient(circle at top,#0b0b18,#050507 70%);
@@ -16,7 +15,7 @@ body{
   overflow:hidden;
 }
 
-/* ===== HEADER ===== */
+/* HEADER */
 .room-header{
   display:flex;
   justify-content:space-between;
@@ -36,7 +35,7 @@ body{
   color:white;
 }
 
-/* ===== CHAT ===== */
+/* CHAT */
 .messages{
   padding:16px;
   min-height:65vh;
@@ -50,7 +49,7 @@ body{
   margin-top:30px;
 }
 
-/* ===== INPUT ===== */
+/* INPUT */
 .input-bar{
   display:flex;
   gap:10px;
@@ -74,7 +73,7 @@ button{
   color:white;
 }
 
-/* ===== MENU (GLASS) ===== */
+/* MENU */
 .menu{
   position:fixed;
   inset:0;
@@ -94,9 +93,7 @@ button{
   backdrop-filter:blur(14px);
   border-radius:20px;
   padding:18px;
-  animation:fadeIn .25s ease;
 }
-@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}}
 
 .progress{
   height:6px;
@@ -108,10 +105,9 @@ button{
 .progress div{
   height:100%;
   background:linear-gradient(135deg,#6d5dfc,#9b8cff);
-  transition:width 1s linear;
 }
 
-/* ===== DUSTBIN OVERLAY ===== */
+/* EXIT OVERLAY */
 #exitOverlay{
   position:fixed;
   inset:0;
@@ -120,11 +116,6 @@ button{
   justify-content:center;
   align-items:center;
   z-index:2000;
-  flex-direction:column;
-}
-#bin{
-  font-size:64px;
-  margin-top:40px;
 }
 .fadeOut{
   opacity:0;
@@ -152,7 +143,6 @@ button{
   <button id="sendBtn">Send</button>
 </div>
 
-<!-- MENU -->
 <div id="menu" class="menu hidden">
   <div class="menu-card">
     <strong>⏳ Room expiry</strong>
@@ -164,107 +154,90 @@ button{
     <div class="progress"><div id="inactiveExpiryBar"></div></div>
 
     <button id="shareBtn">🔗 Share quietly</button>
-    <button onclick="showRules()">📜 Room rules</button>
-    <p style="opacity:.6;font-size:13px">
-      Leaving deletes nothing — because nothing is saved.
-    </p>
+    <button id="rulesBtn">📜 Room rules</button>
     <button id="exitBtn">🗑️ Leave without a trace</button>
-    <button onclick="closeMenu()">Cancel</button>
+    <button id="closeMenu">Cancel</button>
   </div>
 </div>
 
-<!-- EXIT OVERLAY -->
-<div id="exitOverlay">
-  <div id="bin">🗑️</div>
-</div>
+<div id="exitOverlay"></div>
 
 <script>
-/* ===== SUPABASE ===== */
-const supabase = window.supabase.createClient(
-  "https://ehvusinvfwsaxguuebfc.supabase.co",
-  "YOUR_PUBLIC_ANON_KEY"
-);
+/* SAFE DOM READY */
+document.addEventListener("DOMContentLoaded", () => {
 
-const room = new URLSearchParams(location.search).get("room");
+  const supabase = window.supabase.createClient(
+    "https://ehvusinvfwsaxguuebfc.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
+  );
 
-/* ===== DOM ===== */
-const messages = document.getElementById("messages");
-const msgInput = document.getElementById("msgInput");
-const miniTimer = document.getElementById("miniTimer");
-const menu = document.getElementById("menu");
-const exitOverlay = document.getElementById("exitOverlay");
+  const room = new URLSearchParams(location.search).get("room");
 
-/* ===== STATE ===== */
-const INACTIVITY_LIMIT = 30*60*1000;
-let lastActivity = Date.now();
-let exiting = false;
+  /* DOM */
+  const menuBtn = document.getElementById("menuBtn");
+  const closeMenu = document.getElementById("closeMenu");
+  const menu = document.getElementById("menu");
+  const sendBtn = document.getElementById("sendBtn");
+  const exitBtn = document.getElementById("exitBtn");
+  const shareBtn = document.getElementById("shareBtn");
+  const rulesBtn = document.getElementById("rulesBtn");
+  const msgInput = document.getElementById("msgInput");
+  const messages = document.getElementById("messages");
+  const miniTimer = document.getElementById("miniTimer");
+  const inactiveText = document.getElementById("inactiveExpiryText");
+  const inactiveBar = document.getElementById("inactiveExpiryBar");
+  const exitOverlay = document.getElementById("exitOverlay");
 
-/* ===== MENU ===== */
-menuBtn.onclick = ()=>menu.classList.remove("hidden");
-function closeMenu(){menu.classList.add("hidden")}
+  let lastActivity = Date.now();
+  const LIMIT = 30 * 60 * 1000;
 
-/* ===== SEND ===== */
-sendBtn.onclick = ()=>{
-  if(exiting) return;
-  const t = msgInput.value.trim();
-  if(!t) return;
-  lastActivity = Date.now();
-  const d = document.createElement("div");
-  d.className="msg you";
-  d.textContent=t;
-  messages.appendChild(d);
-  msgInput.value="";
-};
+  /* MENU */
+  menuBtn.onclick = () => menu.classList.remove("hidden");
+  closeMenu.onclick = () => menu.classList.add("hidden");
 
-/* ===== RULES ===== */
-function showRules(){
-  alert("• Anonymous\n• No history\n• Silence is allowed");
-}
+  /* SEND */
+  sendBtn.onclick = () => {
+    const t = msgInput.value.trim();
+    if(!t) return;
+    lastActivity = Date.now();
+    const d = document.createElement("div");
+    d.className = "msg you";
+    d.textContent = t;
+    messages.appendChild(d);
+    msgInput.value = "";
+  };
 
-/* ===== EXIT ENGINE ===== */
-async function exitRoom(reason){
-  if(exiting) return;
-  exiting = true;
-  closeMenu();
-  exitOverlay.style.display="flex";
+  /* RULES */
+  rulesBtn.onclick = () =>
+    alert("• Anonymous\n• No history\n• Silence is allowed");
 
-  const msgs = [...document.querySelectorAll(".msg")].reverse();
-  for(const m of msgs){
-    await new Promise(r=>setTimeout(r,120));
-    m.classList.add("fadeOut");
-  }
+  /* SHARE */
+  shareBtn.onclick = () =>
+    navigator.share
+      ? navigator.share({url:location.href})
+      : navigator.clipboard.writeText(location.href);
 
-  await new Promise(r=>setTimeout(r,600));
-
-  // DB CLEANUP (best effort)
-  if(room){
+  /* EXIT */
+  exitBtn.onclick = async () => {
+    exitOverlay.style.display="flex";
+    [...document.querySelectorAll(".msg")].forEach(m=>m.classList.add("fadeOut"));
     await supabase.from("messages").delete().eq("room_code",room);
     await supabase.from("rooms").delete().eq("room_code",room);
-  }
+    setTimeout(()=>location.href="/",800);
+  };
 
-  location.href="/";
-}
+  /* TIMER */
+  setInterval(()=>{
+    const left = LIMIT - (Date.now()-lastActivity);
+    const m = Math.max(0,Math.floor(left/60000));
+    const s = Math.max(0,Math.floor((left%60000)/1000));
+    inactiveText.textContent = `${m}m ${s}s`;
+    inactiveBar.style.width = `${(left/LIMIT)*100}%`;
+    miniTimer.textContent = `⏳ ${m}m`;
+    if(left<=0) exitBtn.onclick();
+  },1000);
 
-/* ===== EXIT BUTTON ===== */
-exitBtn.onclick = ()=>exitRoom("manual");
-
-/* ===== SHARE ===== */
-shareBtn.onclick = () =>
-  navigator.share
-    ? navigator.share({url:location.href})
-    : navigator.clipboard.writeText(location.href);
-
-/* ===== TIMER ===== */
-setInterval(()=>{
-  const left = INACTIVITY_LIMIT - (Date.now()-lastActivity);
-  const m = Math.max(0,Math.floor(left/60000));
-  const s = Math.max(0,Math.floor((left%60000)/1000));
-  inactiveExpiryText.textContent=`${m}m ${s}s`;
-  inactiveExpiryBar.style.width=`${(left/INACTIVITY_LIMIT)*100}%`;
-  miniTimer.textContent=`⏳ ${m}m`;
-
-  if(left<=0) exitRoom("inactive");
-},1000);
+});
 </script>
 
 </body>
