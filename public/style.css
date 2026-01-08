@@ -11,15 +11,12 @@
   --ira-border-soft:rgba(255,255,255,0.08);
 }
 
-*{
-  box-sizing:border-box;
-}
+*{ box-sizing:border-box }
 
 body{
   margin:0;
   min-height:100vh;
-  background:
-    radial-gradient(circle at top, #161844, var(--ira-bg-main) 70%);
+  background:radial-gradient(circle at top,#161844,var(--ira-bg-main) 70%);
   color:var(--ira-text-main);
   font-family:Inter,system-ui,-apple-system;
 }
@@ -38,11 +35,29 @@ body{
   gap:14px;
 }
 
-.logo-img{
+/* ===== IRA SVG LOGO ===== */
+.ira-logo{
   width:42px;
   height:42px;
-  border-radius:50%;
-  box-shadow:0 0 24px rgba(111,124,255,.45);
+  filter:drop-shadow(0 0 18px rgba(111,124,255,.45));
+}
+
+.ira-ring{
+  animation:iraBreath 6s ease-in-out infinite;
+}
+
+.ira-wave{
+  animation:iraWave 4.5s ease-in-out infinite;
+}
+
+@keyframes iraBreath{
+  0%,100%{opacity:.85;stroke-width:3.5}
+  50%{opacity:1;stroke-width:4.5}
+}
+
+@keyframes iraWave{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-2px)}
 }
 
 .logo-text{
@@ -52,9 +67,7 @@ body{
 }
 
 /* ===== HOME ===== */
-.home{
-  padding:26px 18px 60px;
-}
+.home{ padding:26px 18px 60px }
 
 h1{
   font-size:34px;
@@ -74,34 +87,12 @@ h1{
   margin:28px 0 40px;
 }
 
-.room-actions button{
-  flex:1;
-}
+.room-actions button{ flex:1 }
 
 /* ===== WHY ===== */
-.why h2{
-  margin-bottom:12px;
-}
-
-.why ul{
-  list-style:none;
-  padding:0;
-  margin:0;
-}
-
 .why li{
   margin-bottom:8px;
   color:var(--ira-text-muted);
-}
-
-/* ===== LINKS ===== */
-.about-link{
-  margin-top:36px;
-}
-
-.about-link a{
-  color:var(--ira-primary-soft);
-  text-decoration:none;
 }
 
 /* ===== BUTTONS ===== */
@@ -112,6 +103,8 @@ button{
   font-size:15px;
   padding:14px 20px;
 }
+
+button:active{ transform:scale(.96) }
 
 .primary-btn{
   background:linear-gradient(135deg,var(--ira-primary),var(--ira-primary-soft));
@@ -130,10 +123,6 @@ button{
   color:var(--ira-text-muted);
 }
 
-.ghost-btn.wide{
-  width:100%;
-}
-
 /* ===== MODAL ===== */
 .modal{
   position:fixed;
@@ -146,51 +135,18 @@ button{
   z-index:1000;
 }
 
-.hidden{
-  display:none;
-}
+.hidden{display:none}
 
 .premium-card{
   width:92%;
   max-width:440px;
-  background:linear-gradient(
-    180deg,
-    rgba(32,34,64,.96),
-    rgba(18,20,38,.96)
-  );
+  background:linear-gradient(180deg,rgba(32,34,64,.96),rgba(18,20,38,.96));
   border-radius:28px;
   padding:26px 22px 30px;
   box-shadow:0 30px 80px rgba(0,0,0,.65);
 }
 
-.subtitle{
-  color:var(--ira-text-muted);
-  margin-bottom:18px;
-}
-
-/* ===== FORM ===== */
-.option{
-  margin-bottom:20px;
-}
-
-.range{
-  width:100%;
-  margin-top:12px;
-}
-
-.range-helper,
-.hint{
-  font-size:12px;
-  color:var(--ira-text-muted);
-  margin-top:6px;
-  display:block;
-}
-
-.range-label{
-  margin-top:10px;
-  font-size:14px;
-}
-
+/* ===== INPUT ===== */
 input{
   width:100%;
   padding:14px 16px;
@@ -200,24 +156,8 @@ input{
   color:white;
   font-size:15px;
   outline:none;
-  margin-top:14px;
 }
 
-.agree{
-  display:flex;
-  gap:10px;
-  font-size:14px;
-  margin-top:10px;
-}
-
-.card-actions{
-  display:flex;
-  gap:14px;
-  margin-top:26px;
-}
-
-.system{
-  margin-top:10px;
-  color:var(--ira-text-muted);
-  font-size:14px;
+input:focus{
+  box-shadow:0 0 0 2px rgba(111,124,255,.25);
 }
