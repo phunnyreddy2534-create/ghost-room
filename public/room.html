@@ -7,44 +7,28 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-:root{
-  --accent:#6d5dfc;
-  --bg:#050507;
-  --panel:#121222;
-  --soft:#1a1a28;
-}
-
+/* ===== BASE ===== */
 body{
   margin:0;
-  background:radial-gradient(1200px 600px at top,#0b0b14,#050507);
+  background:radial-gradient(circle at top,#0b0b18,#050507 70%);
   color:#fff;
   font-family:system-ui,Inter;
-  overflow-x:hidden;
+  overflow:hidden;
 }
 
-/* HEADER */
+/* ===== HEADER ===== */
 .room-header{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:14px 16px;
+  padding:12px 16px;
 }
 .header-right{
   display:flex;
   align-items:center;
   gap:12px;
 }
-.mini-timer{
-  font-size:13px;
-  opacity:.8;
-  animation:pulse 2s infinite;
-}
-@keyframes pulse{
-  0%,100%{opacity:.5}
-  50%{opacity:1}
-}
-
-/* MENU BUTTON */
+.timer-dot{opacity:.8;font-size:14px}
 .menu-btn{
   font-size:22px;
   background:none;
@@ -52,87 +36,74 @@ body{
   color:white;
 }
 
-/* CHAT */
+/* ===== CHAT ===== */
 .messages{
-  padding:20px 16px;
+  padding:16px;
   min-height:65vh;
 }
-.msg{
-  margin-bottom:12px;
-  max-width:75%;
-  line-height:1.4;
-}
-.you{
-  margin-left:auto;
-  text-align:right;
-}
+.msg{margin-bottom:10px;max-width:75%;transition:.3s}
+.you{margin-left:auto;text-align:right}
 .system{
   text-align:center;
-  font-size:13px;
   opacity:.6;
-  margin:20px 0;
+  font-size:14px;
+  margin-top:30px;
 }
 
-/* INPUT */
+/* ===== INPUT ===== */
 .input-bar{
   display:flex;
   gap:10px;
-  padding:14px;
+  padding:12px;
   position:sticky;
   bottom:0;
-  background:linear-gradient(180deg,transparent,#050507 40%);
+  background:rgba(5,5,7,.85);
+  backdrop-filter:blur(8px);
 }
 input{
   flex:1;
-  padding:14px;
-  border-radius:16px;
+  padding:12px;
+  border-radius:14px;
   border:none;
 }
 button{
-  padding:14px 18px;
+  padding:12px 16px;
   border:none;
-  border-radius:16px;
-  background:linear-gradient(135deg,#6d5dfc,#9b8cff);
+  border-radius:14px;
+  background:#6d5dfc;
   color:white;
-  font-weight:600;
 }
 
-/* MENU OVERLAY */
+/* ===== MENU (GLASS) ===== */
 .menu{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.65);
-  backdrop-filter:blur(8px);
+  background:rgba(0,0,0,.45);
+  backdrop-filter:blur(6px);
   display:flex;
-  justify-content:center;
-  align-items:flex-end;
+  justify-content:flex-end;
+  align-items:flex-start;
   z-index:1000;
 }
 .menu.hidden{display:none}
 .menu-card{
-  width:100%;
-  background:linear-gradient(180deg,#17172b,#0f0f1e);
-  border-radius:22px 22px 0 0;
-  padding:22px;
-  animation:slideUp .35s ease;
-  box-shadow:0 -20px 60px rgba(0,0,0,.6);
+  width:90%;
+  max-width:360px;
+  margin:12px;
+  background:rgba(18,18,34,.75);
+  backdrop-filter:blur(14px);
+  border-radius:20px;
+  padding:18px;
+  animation:fadeIn .25s ease;
 }
-@keyframes slideUp{
-  from{transform:translateY(100%)}
-  to{transform:none}
-}
-.menu-card button{
-  width:100%;
-  margin:10px 0;
-}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}}
 
-/* PROGRESS */
 .progress{
   height:6px;
-  background:var(--soft);
+  background:#1a1a28;
   border-radius:6px;
   overflow:hidden;
-  margin:8px 0 16px;
+  margin:6px 0 14px;
 }
 .progress div{
   height:100%;
@@ -140,12 +111,24 @@ button{
   transition:width 1s linear;
 }
 
-/* EXIT TRUST CARD */
-.trust{
-  text-align:center;
-  font-size:13px;
-  opacity:.7;
-  margin-bottom:10px;
+/* ===== DUSTBIN OVERLAY ===== */
+#exitOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.85);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:2000;
+  flex-direction:column;
+}
+#bin{
+  font-size:64px;
+  margin-top:40px;
+}
+.fadeOut{
+  opacity:0;
+  transform:scale(.6) translateY(20px);
 }
 </style>
 </head>
@@ -155,12 +138,14 @@ button{
 <header class="room-header">
   <div>👻 Ghost Room</div>
   <div class="header-right">
-    <div class="mini-timer" id="miniTimer">⏳</div>
+    <div class="timer-dot" id="miniTimer">⏳</div>
     <button class="menu-btn" id="menuBtn">☰</button>
   </div>
 </header>
 
-<div class="messages" id="messages"></div>
+<div class="messages" id="messages">
+  <div class="msg system">👻 You are anonymous here. Silence is allowed.</div>
+</div>
 
 <div class="input-bar">
   <input id="msgInput" placeholder="Type without being known…" />
@@ -170,7 +155,6 @@ button{
 <!-- MENU -->
 <div id="menu" class="menu hidden">
   <div class="menu-card">
-
     <strong>⏳ Room expiry</strong>
     <div id="roomExpiryText">—</div>
     <div class="progress"><div id="roomExpiryBar"></div></div>
@@ -180,91 +164,106 @@ button{
     <div class="progress"><div id="inactiveExpiryBar"></div></div>
 
     <button id="shareBtn">🔗 Share quietly</button>
-    <button onclick="alert('• Anonymous\n• No history\n• Silence is allowed')">📜 Room rules</button>
-
-    <div class="trust">
+    <button onclick="showRules()">📜 Room rules</button>
+    <p style="opacity:.6;font-size:13px">
       Leaving deletes nothing — because nothing is saved.
-    </div>
-
-    <button id="exitBtn">🚪 Leave without a trace</button>
-    <button id="closeMenu">Cancel</button>
+    </p>
+    <button id="exitBtn">🗑️ Leave without a trace</button>
+    <button onclick="closeMenu()">Cancel</button>
   </div>
 </div>
 
+<!-- EXIT OVERLAY -->
+<div id="exitOverlay">
+  <div id="bin">🗑️</div>
+</div>
+
 <script>
-/* CONFIG */
-const INACTIVITY_LIMIT_MS = 30*60*1000;
+/* ===== SUPABASE ===== */
+const supabase = window.supabase.createClient(
+  "https://ehvusinvfwsaxguuebfc.supabase.co",
+  "YOUR_PUBLIC_ANON_KEY"
+);
 
-/* DOM */
-const menuBtn = document.getElementById("menuBtn");
-const menu = document.getElementById("menu");
-const closeMenu = document.getElementById("closeMenu");
-const exitBtn = document.getElementById("exitBtn");
-const shareBtn = document.getElementById("shareBtn");
-const sendBtn = document.getElementById("sendBtn");
-const msgInput = document.getElementById("msgInput");
+const room = new URLSearchParams(location.search).get("room");
+
+/* ===== DOM ===== */
 const messages = document.getElementById("messages");
+const msgInput = document.getElementById("msgInput");
 const miniTimer = document.getElementById("miniTimer");
+const menu = document.getElementById("menu");
+const exitOverlay = document.getElementById("exitOverlay");
 
-/* STATE */
+/* ===== STATE ===== */
+const INACTIVITY_LIMIT = 30*60*1000;
 let lastActivity = Date.now();
-let expired = false;
+let exiting = false;
 
-/* ENTRY RITUAL */
-addSystem("👻 You are anonymous here. Silence is allowed.");
-
-/* MENU */
+/* ===== MENU ===== */
 menuBtn.onclick = ()=>menu.classList.remove("hidden");
-closeMenu.onclick = ()=>menu.classList.add("hidden");
+function closeMenu(){menu.classList.add("hidden")}
 
-/* EXIT */
-exitBtn.onclick = ()=>{
-  addSystem("👻 You left without a trace.");
-  setTimeout(()=>location.href="/",1200);
-};
-
-/* SHARE */
-shareBtn.onclick = ()=>navigator.share
-  ? navigator.share({url:location.href})
-  : navigator.clipboard.writeText(location.href);
-
-/* SEND */
+/* ===== SEND ===== */
 sendBtn.onclick = ()=>{
-  const text = msgInput.value.trim();
-  if(!text) return;
+  if(exiting) return;
+  const t = msgInput.value.trim();
+  if(!t) return;
   lastActivity = Date.now();
   const d = document.createElement("div");
   d.className="msg you";
-  d.textContent=text;
+  d.textContent=t;
   messages.appendChild(d);
   msgInput.value="";
 };
 
-/* SYSTEM MSG */
-function addSystem(t){
-  const d=document.createElement("div");
-  d.className="msg system";
-  d.textContent=t;
-  messages.appendChild(d);
+/* ===== RULES ===== */
+function showRules(){
+  alert("• Anonymous\n• No history\n• Silence is allowed");
 }
 
-/* TIMER */
-setInterval(()=>{
-  const now = Date.now();
-  const inactiveLeft = INACTIVITY_LIMIT_MS - (now-lastActivity);
+/* ===== EXIT ENGINE ===== */
+async function exitRoom(reason){
+  if(exiting) return;
+  exiting = true;
+  closeMenu();
+  exitOverlay.style.display="flex";
 
-  const m = Math.max(0,Math.floor(inactiveLeft/60000));
-  const s = Math.max(0,Math.floor((inactiveLeft%60000)/1000));
-
-  document.getElementById("inactiveExpiryText").textContent = `${m}m ${s}s`;
-  document.getElementById("inactiveExpiryBar").style.width = `${(inactiveLeft/INACTIVITY_LIMIT_MS)*100}%`;
-  miniTimer.textContent = `⏳ ${m}m`;
-
-  if(inactiveLeft<=0 && !expired){
-    expired=true;
-    addSystem("👻 This room has been forgotten.");
-    setTimeout(()=>location.href="/",2000);
+  const msgs = [...document.querySelectorAll(".msg")].reverse();
+  for(const m of msgs){
+    await new Promise(r=>setTimeout(r,120));
+    m.classList.add("fadeOut");
   }
+
+  await new Promise(r=>setTimeout(r,600));
+
+  // DB CLEANUP (best effort)
+  if(room){
+    await supabase.from("messages").delete().eq("room_code",room);
+    await supabase.from("rooms").delete().eq("room_code",room);
+  }
+
+  location.href="/";
+}
+
+/* ===== EXIT BUTTON ===== */
+exitBtn.onclick = ()=>exitRoom("manual");
+
+/* ===== SHARE ===== */
+shareBtn.onclick = () =>
+  navigator.share
+    ? navigator.share({url:location.href})
+    : navigator.clipboard.writeText(location.href);
+
+/* ===== TIMER ===== */
+setInterval(()=>{
+  const left = INACTIVITY_LIMIT - (Date.now()-lastActivity);
+  const m = Math.max(0,Math.floor(left/60000));
+  const s = Math.max(0,Math.floor((left%60000)/1000));
+  inactiveExpiryText.textContent=`${m}m ${s}s`;
+  inactiveExpiryBar.style.width=`${(left/INACTIVITY_LIMIT)*100}%`;
+  miniTimer.textContent=`⏳ ${m}m`;
+
+  if(left<=0) exitRoom("inactive");
 },1000);
 </script>
 
