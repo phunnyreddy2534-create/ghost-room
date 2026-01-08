@@ -2,9 +2,9 @@
      xmlns="http://www.w3.org/2000/svg">
 
   <defs>
-    <!-- Glow filter -->
+    <!-- Glow -->
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feGaussianBlur stdDeviation="10" result="blur"/>
       <feMerge>
         <feMergeNode in="blur"/>
         <feMergeNode in="SourceGraphic"/>
@@ -25,20 +25,29 @@
     r="180"
     fill="none"
     stroke="url(#iraGradient)"
-    stroke-width="22"
+    stroke-width="20"
     filter="url(#glow)"
   />
 
-  <!-- Inner wave -->
+  <!-- Animated wave -->
   <path
-    d="M140 270
-       C190 245, 230 245, 256 270
-       C282 295, 322 295, 372 270"
     fill="none"
     stroke="url(#iraGradient)"
-    stroke-width="16"
+    stroke-width="14"
     stroke-linecap="round"
-    filter="url(#glow)"
-  />
+    filter="url(#glow)">
+
+    <!-- Wave animation -->
+    <animate
+      attributeName="d"
+      dur="4.5s"
+      repeatCount="indefinite"
+      values="
+        M140 270 C190 250 230 250 256 270 C282 290 322 290 372 270;
+        M140 270 C190 290 230 290 256 270 C282 250 322 250 372 270;
+        M140 270 C190 250 230 250 256 270 C282 290 322 290 372 270
+      "
+    />
+  </path>
 
 </svg>
