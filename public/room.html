@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <title>IRA Room</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 
 <style>
 /* ================= BASE ================= */
@@ -18,7 +21,6 @@ body{
   color:#fff;
   transition:background 1.2s ease;
 }
-
 body.fading{
   background:radial-gradient(circle at top,#0e1028,#030307 75%);
 }
@@ -33,52 +35,19 @@ body.fading{
   backdrop-filter:blur(10px);
   border-bottom:1px solid rgba(255,255,255,.06);
 }
-
 .header-left{
   display:flex;
   align-items:center;
   gap:12px;
 }
-
-/* ===== SVG LOGO ===== */
-.ira-logo{
-  width:34px;
-  height:34px;
-  filter:drop-shadow(0 0 16px rgba(111,124,255,.45));
-}
-
-.ira-ring{ animation:breath 6s ease-in-out infinite; }
-.ira-wave{ animation:wave 4.5s ease-in-out infinite; }
-
-@keyframes breath{
-  0%,100%{opacity:.85;stroke-width:3.5}
-  50%{opacity:1;stroke-width:4.5}
-}
-
-@keyframes wave{
-  0%,100%{transform:translateY(0)}
-  50%{transform:translateY(-2px)}
-}
-
-.logo-text{
-  font-weight:600;
-  letter-spacing:.4px;
-}
-
-/* ===== MENU BUTTON ===== */
-.menu-btn{
-  font-size:22px;
-  background:none;
-  border:none;
-  color:white;
-  cursor:pointer;
-  animation:menuPulse 3.5s ease-in-out infinite;
-}
-
-@keyframes menuPulse{
-  0%,100%{opacity:.7}
-  50%{opacity:1}
-}
+.ira-logo{width:34px;height:34px;filter:drop-shadow(0 0 16px rgba(111,124,255,.45));}
+.ira-ring{animation:breath 6s ease-in-out infinite;}
+.ira-wave{animation:wave 4.5s ease-in-out infinite;}
+@keyframes breath{0%,100%{opacity:.85;stroke-width:3.5}50%{opacity:1;stroke-width:4.5}}
+@keyframes wave{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.logo-text{font-weight:600;letter-spacing:.4px;}
+.menu-btn{font-size:22px;background:none;border:none;color:white;cursor:pointer;animation:menuPulse 3.5s ease-in-out infinite;}
+@keyframes menuPulse{0%,100%{opacity:.7}50%{opacity:1}}
 
 /* ================= CHAT ================= */
 .messages{
@@ -88,23 +57,22 @@ body.fading{
   display:flex;
   flex-direction:column;
 }
-
+.system{
+  text-align:center;
+  color:rgba(255,255,255,.55);
+  font-size:13px;
+  margin:22px 0 8px;
+}
 .presence{
   text-align:center;
   font-size:12px;
   color:rgba(255,255,255,.35);
   margin-bottom:18px;
 }
-
-.presence span{ animation:dot 1.8s infinite; }
+.presence span{animation:dot 1.8s infinite;}
 .presence span:nth-child(2){animation-delay:.3s}
 .presence span:nth-child(3){animation-delay:.6s}
-
-@keyframes dot{
-  0%{opacity:.2}
-  50%{opacity:.8}
-  100%{opacity:.2}
-}
+@keyframes dot{0%{opacity:.2}50%{opacity:.8}100%{opacity:.2}}
 
 .msg{
   max-width:78%;
@@ -115,26 +83,18 @@ body.fading{
   animation:pop .18s ease-out;
   transition:opacity 1.2s ease;
 }
-
-.msg.faded{ opacity:.35; }
-
+.msg.faded{opacity:.35;}
 .msg.you{
   align-self:flex-end;
   background:linear-gradient(135deg,#6F7CFF,#8E97FF);
   border-radius:18px 18px 6px 18px;
 }
-
-.system{
-  text-align:center;
-  color:rgba(255,255,255,.55);
-  font-size:13px;
-  margin:22px 0 8px;
+.msg.other{
+  align-self:flex-start;
+  background:#23233b;
+  border-radius:18px 18px 18px 6px;
 }
-
-@keyframes pop{
-  from{opacity:0;transform:scale(.95)}
-  to{opacity:1;transform:none}
-}
+@keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
 
 /* ================= INPUT ================= */
 .input-bar{
@@ -145,7 +105,6 @@ body.fading{
   backdrop-filter:blur(10px);
   border-top:1px solid rgba(255,255,255,.06);
 }
-
 .input-bar input{
   flex:1;
   padding:12px 16px;
@@ -156,11 +115,7 @@ body.fading{
   font-size:14px;
   outline:none;
 }
-
-.input-bar.pulse input{
-  box-shadow:0 0 0 2px rgba(111,124,255,.35);
-}
-
+.input-bar.pulse input{box-shadow:0 0 0 2px rgba(111,124,255,.35);}
 .send{
   padding:12px 18px;
   border:none;
@@ -170,8 +125,7 @@ body.fading{
   font-weight:600;
   cursor:pointer;
 }
-
-.send.pulse{ transform:scale(1.06); }
+.send.pulse{transform:scale(1.06);}
 
 /* ================= MENU ================= */
 .menu-overlay{
@@ -182,7 +136,6 @@ body.fading{
   display:none;
   z-index:1000;
 }
-
 .menu{
   position:absolute;
   top:64px;
@@ -192,9 +145,7 @@ body.fading{
   backdrop-filter:blur(14px);
   border-radius:18px;
   padding:10px;
-  box-shadow:0 20px 40px rgba(0,0,0,.45);
 }
-
 .menu-item{
   padding:14px;
   border-radius:14px;
@@ -202,16 +153,8 @@ body.fading{
   background:#23233b;
   display:flex;
   justify-content:space-between;
-  align-items:center;
-  font-size:14px;
 }
-
-.menu-item small{
-  opacity:.55;
-  font-size:12px;
-}
-
-.menu-item.danger{ background:#3a1f28; }
+.menu-item.danger{background:#3a1f28;}
 .menu-item:last-child{margin-bottom:0}
 
 /* ================= EXIT ================= */
@@ -225,12 +168,8 @@ body.fading{
   flex-direction:column;
   z-index:2000;
 }
-
-.fadeOut{ animation:trash .6s forwards; }
-
-@keyframes trash{
-  to{opacity:0;transform:scale(.6) translateY(40px)}
-}
+.fadeOut{animation:trash .6s forwards;}
+@keyframes trash{to{opacity:0;transform:scale(.6) translateY(40px)}}
 </style>
 </head>
 
@@ -247,8 +186,8 @@ body.fading{
       </defs>
       <circle cx="50" cy="50" r="42" fill="none" stroke="url(#iraGlow)" stroke-width="4" class="ira-ring"/>
       <path d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
-            fill="none" stroke="url(#iraGlow)" stroke-width="3"
-            stroke-linecap="round" class="ira-wave"/>
+        fill="none" stroke="url(#iraGlow)" stroke-width="3"
+        stroke-linecap="round" class="ira-wave"/>
     </svg>
     <span class="logo-text">IRA</span>
   </div>
@@ -267,10 +206,7 @@ body.fading{
 
 <div id="menuOverlay" class="menu-overlay">
   <div class="menu">
-    <div class="menu-item">
-      💤 Inactivity
-      <small id="timerText">active</small>
-    </div>
+    <div class="menu-item">💤 Inactivity <small id="timerText">active</small></div>
     <div class="menu-item" id="shareBtn">🔗 Share quietly</div>
     <div class="menu-item danger" id="exitBtn">🗑️ Leave without a trace</div>
   </div>
@@ -282,97 +218,64 @@ body.fading{
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded",()=>{
+const roomCode = new URLSearchParams(location.search).get("room");
 
-const menuBtn = document.getElementById("menuBtn");
-const overlay = document.getElementById("menuOverlay");
+const supabase = supabaseJs.createClient(
+  IRA_CONFIG.SUPABASE_URL,
+  IRA_CONFIG.SUPABASE_ANON_KEY
+);
+
+const messagesEl = document.getElementById("messages");
 const sendBtn = document.getElementById("sendBtn");
 const msgInput = document.getElementById("msgInput");
-const messages = document.getElementById("messages");
-const exitBtn = document.getElementById("exitBtn");
-const exitOverlay = document.getElementById("exitOverlay");
-const shareBtn = document.getElementById("shareBtn");
-const inputBar = document.getElementById("inputBar");
-const timerText = document.getElementById("timerText");
 
-let lastActivity = Date.now();
-let exiting = false;
-const LIMIT = 30*60*1000;
+/* LOAD HISTORY */
+async function loadMessages(){
+  const { data } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("room_code", roomCode)
+    .order("created_at", { ascending: true });
 
-/* MENU */
-menuBtn.onclick = ()=> overlay.style.display="block";
-overlay.onclick = e=>{ if(e.target===overlay) overlay.style.display="none"; };
+  data?.forEach(renderMessage);
+}
+
+/* REALTIME */
+supabase.channel("room-"+roomCode)
+  .on("postgres_changes", {
+    event: "INSERT",
+    schema: "public",
+    table: "messages",
+    filter: `room_code=eq.${roomCode}`
+  }, payload => {
+    renderMessage(payload.new);
+  })
+  .subscribe();
 
 /* SEND */
-sendBtn.onclick = ()=>{
-  const t = msgInput.value.trim();
-  if(!t) return;
+sendBtn.onclick = async ()=>{
+  const text = msgInput.value.trim();
+  if(!text) return;
 
-  lastActivity = Date.now();
-  timerText.textContent = "active";
-
-  sendBtn.classList.add("pulse");
-  inputBar.classList.add("pulse");
-  setTimeout(()=>{
-    sendBtn.classList.remove("pulse");
-    inputBar.classList.remove("pulse");
-  },220);
-
-  const d = document.createElement("div");
-  d.className="msg you";
-  d.textContent=t;
-  messages.appendChild(d);
-
-  msgInput.value="";
-  messages.scrollTop = messages.scrollHeight;
-};
-
-/* SHARE */
-shareBtn.onclick = async ()=>{
-  if(navigator.share){
-    await navigator.share({url:location.href});
-  }else{
-    await navigator.clipboard.writeText(location.href);
-    alert("Room link copied");
-  }
-};
-
-/* EXIT */
-exitBtn.onclick = async ()=>{
-  if(exiting) return;
-  exiting = true;
-
-  overlay.style.display="none";
-  exitOverlay.style.display="flex";
-
-  document.querySelectorAll(".msg").forEach((m,i)=>{
-    setTimeout(()=>m.classList.add("fadeOut"), i*60);
+  await supabase.from("messages").insert({
+    room_code: roomCode,
+    content: text,
+    sender: "anon"
   });
 
-  await new Promise(r=>setTimeout(r,1000));
-  location.href="/";
+  msgInput.value="";
 };
 
-/* INACTIVITY LOOP */
-setInterval(()=>{
-  const idle = Date.now() - lastActivity;
+/* RENDER */
+function renderMessage(m){
+  const d = document.createElement("div");
+  d.className = "msg other";
+  d.textContent = m.content;
+  messagesEl.appendChild(d);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
 
-  if(idle > 60000){
-    document.body.classList.add("fading");
-    document.querySelectorAll(".msg").forEach(m=>m.classList.add("faded"));
-    timerText.textContent = "fading";
-  }else{
-    document.body.classList.remove("fading");
-    document.querySelectorAll(".msg").forEach(m=>m.classList.remove("faded"));
-    timerText.textContent = "active";
-  }
-
-  if(idle > LIMIT){
-    exitBtn.onclick();
-  }
-},1200);
-
-});
+loadMessages();
 </script>
 
 </body>
