@@ -302,3 +302,78 @@ button:active{
     visibility:hidden;
   }
 }
+/* ================= CREATE ROOM MODAL ================= */
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  backdrop-filter:blur(10px);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:2000;
+}
+
+.hidden{ display:none }
+
+.glass-card{
+  width:92%;
+  max-width:420px;
+  background:rgba(20,22,45,.6);
+  backdrop-filter:blur(18px);
+  border-radius:22px;
+  padding:26px 22px 28px;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+
+.glass-card h2{
+  margin:0 0 6px;
+  font-size:22px;
+}
+
+.subtitle{
+  font-size:14px;
+  color:var(--ira-text-muted);
+  margin-bottom:18px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-bottom:16px;
+}
+
+.field span{
+  font-size:13px;
+  color:var(--ira-text-muted);
+}
+
+.field input,
+.field textarea,
+.field select{
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid var(--ira-border-soft);
+  background:#141633;
+  color:white;
+  font-size:14px;
+  outline:none;
+}
+
+textarea{ resize:none }
+
+.agree{
+  display:flex;
+  gap:10px;
+  font-size:13px;
+  color:var(--ira-text-muted);
+  margin-top:8px;
+}
+
+.card-actions{
+  display:flex;
+  gap:12px;
+  margin-top:22px;
+}
