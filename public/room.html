@@ -16,6 +16,12 @@ body{
   font-family:Inter,system-ui;
   background:radial-gradient(circle at top,#141633,#050507 70%);
   color:#fff;
+  transition:background 1.2s ease;
+}
+
+/* Mood shift (H) */
+body.fading{
+  background:radial-gradient(circle at top,#0e1028,#030307 75%);
 }
 
 /* ================= HEADER ================= */
@@ -65,7 +71,7 @@ body{
   letter-spacing:.4px;
 }
 
-/* ===== MENU BUTTON (C) ===== */
+/* ===== MENU BUTTON ===== */
 .menu-btn{
   font-size:22px;
   background:none;
@@ -89,7 +95,7 @@ body{
   flex-direction:column;
 }
 
-/* Presence indicator (D) */
+/* Presence indicator */
 .presence{
   text-align:center;
   font-size:12px;
@@ -117,6 +123,12 @@ body{
   font-size:14px;
   line-height:1.45;
   animation:pop .18s ease-out;
+  transition:opacity 1.2s ease;
+}
+
+/* Message fading (G) */
+.msg.faded{
+  opacity:.35;
 }
 
 .msg.you{
@@ -156,6 +168,12 @@ body{
   color:white;
   font-size:14px;
   outline:none;
+  transition:box-shadow .4s ease;
+}
+
+/* Silent feedback (F) */
+.input-bar.pulse input{
+  box-shadow:0 0 0 2px rgba(111,124,255,.35);
 }
 
 .send{
@@ -166,6 +184,11 @@ body{
   color:white;
   font-weight:600;
   cursor:pointer;
+  transition:transform .2s ease;
+}
+
+.send.pulse{
+  transform:scale(1.06);
 }
 
 /* ================= MENU ================= */
@@ -257,13 +280,10 @@ body{
 
 <div class="messages" id="messages">
   <div class="system">You are anonymous here. Silence is allowed.</div>
-
-  <div class="presence">
-    presence <span>·</span><span>·</span><span>·</span>
-  </div>
+  <div class="presence">quiet presence <span>·</span><span>·</span><span>·</span></div>
 </div>
 
-<div class="input-bar">
+<div class="input-bar" id="inputBar">
   <input id="msgInput" placeholder="Type without being known…">
   <button class="send" id="sendBtn">Send</button>
 </div>
@@ -295,28 +315,42 @@ const messages = document.getElementById("messages");
 const exitBtn = document.getElementById("exitBtn");
 const exitOverlay = document.getElementById("exitOverlay");
 const shareBtn = document.getElementById("shareBtn");
-const timerText = document.getElementById("timerText");
+const inputBar = document.getElementById("inputBar");
 
 let lastActivity = Date.now();
 const LIMIT = 30*60*1000;
 
+/* MENU */
 menuBtn.onclick = ()=> overlay.style.display="block";
 overlay.onclick = e=>{
   if(e.target===overlay) overlay.style.display="none";
 };
 
+/* SEND */
 sendBtn.onclick = ()=>{
   const t = msgInput.value.trim();
   if(!t) return;
+
   lastActivity = Date.now();
+
+  // Silent feedback (F)
+  sendBtn.classList.add("pulse");
+  inputBar.classList.add("pulse");
+  setTimeout(()=>{
+    sendBtn.classList.remove("pulse");
+    inputBar.classList.remove("pulse");
+  },220);
+
   const d = document.createElement("div");
   d.className="msg you";
   d.textContent=t;
   messages.appendChild(d);
+
   msgInput.value="";
   messages.scrollTop = messages.scrollHeight;
 };
 
+/* SHARE */
 shareBtn.onclick = async ()=>{
   if(navigator.share){
     await navigator.share({url:location.href});
@@ -326,18 +360,35 @@ shareBtn.onclick = async ()=>{
   }
 };
 
+/* EXIT */
 exitBtn.onclick = async ()=>{
   overlay.style.display="none";
   exitOverlay.style.display="flex";
-  document.querySelectorAll(".msg").forEach(m=>m.classList.add("fadeOut"));
-  await new Promise(r=>setTimeout(r,900));
+
+  document.querySelectorAll(".msg").forEach((m,i)=>{
+    setTimeout(()=>m.classList.add("fadeOut"), i*60);
+  });
+
+  await new Promise(r=>setTimeout(r,1000));
   location.href="/";
 };
 
+/* INACTIVITY EFFECTS (G + H) */
 setInterval(()=>{
-  const left = LIMIT - (Date.now()-lastActivity);
-  if(left<=0) exitBtn.onclick();
-},1000);
+  const idle = Date.now() - lastActivity;
+
+  if(idle > 60000){
+    document.body.classList.add("fading");
+    document.querySelectorAll(".msg").forEach(m=>m.classList.add("faded"));
+  }else{
+    document.body.classList.remove("fading");
+    document.querySelectorAll(".msg").forEach(m=>m.classList.remove("faded"));
+  }
+
+  if(idle > LIMIT){
+    exitBtn.onclick();
+  }
+},1200);
 
 });
 </script>
