@@ -7,26 +7,20 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-/* ===== BASE ===== */
 body{
   margin:0;
-  font-family:system-ui, Inter;
-  background:radial-gradient(circle at top,#0d0d22,#050507 70%);
+  font-family:system-ui,Inter;
+  background:radial-gradient(circle at top,#0c0c20,#050507 70%);
   color:#fff;
   overflow:hidden;
 }
 
-/* ===== HEADER ===== */
+/* HEADER */
 .room-header{
   display:flex;
   justify-content:space-between;
   align-items:center;
   padding:14px 16px;
-}
-.header-right{
-  display:flex;
-  gap:12px;
-  align-items:center;
 }
 .menu-btn{
   font-size:22px;
@@ -34,9 +28,8 @@ body{
   border:none;
   color:white;
 }
-.timer-dot{opacity:.8}
 
-/* ===== MESSAGES ===== */
+/* CHAT */
 .messages{
   padding:16px;
   height:70vh;
@@ -44,38 +37,33 @@ body{
 }
 .msg{
   max-width:75%;
-  padding:10px 14px;
-  border-radius:16px;
-  margin-bottom:10px;
-  line-height:1.4;
-  animation:pop .25s ease;
+  padding:12px 16px;
+  border-radius:18px;
+  margin-bottom:12px;
+  animation:pop .2s ease;
 }
 .you{
   margin-left:auto;
   background:linear-gradient(135deg,#6d5dfc,#9b8cff);
 }
-.other{
-  background:#1a1a28;
-}
 .system{
-  background:none;
   text-align:center;
   opacity:.6;
   font-size:14px;
   margin:24px 0;
 }
 @keyframes pop{
-  from{transform:scale(.95);opacity:0}
-  to{transform:none;opacity:1}
+  from{opacity:0;transform:scale(.95)}
+  to{opacity:1;transform:none}
 }
 
-/* ===== INPUT ===== */
+/* INPUT */
 .input-bar{
   display:flex;
   gap:10px;
   padding:12px;
   background:rgba(5,5,7,.85);
-  backdrop-filter:blur(8px);
+  backdrop-filter:blur(10px);
 }
 input{
   flex:1;
@@ -83,86 +71,67 @@ input{
   border-radius:20px;
   border:none;
 }
-button.send{
+.send{
+  padding:12px 18px;
   border:none;
   border-radius:18px;
-  padding:12px 18px;
   background:#6d5dfc;
   color:white;
 }
 
-/* ===== MENU (GLASS CARD) ===== */
-.menu{
+/* MENU OVERLAY */
+.menu-overlay{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.45);
+  background:rgba(0,0,0,.35);
   backdrop-filter:blur(6px);
   display:none;
-  justify-content:flex-end;
-  align-items:flex-start;
   z-index:1000;
 }
-.menu-card{
-  margin:12px;
-  width:90%;
-  max-width:360px;
+
+/* MENU CARD */
+.menu{
+  position:absolute;
+  top:60px;
+  right:12px;
+  width:260px;
   background:rgba(18,18,34,.75);
   backdrop-filter:blur(14px);
-  border-radius:22px;
-  padding:16px;
-  animation:slideDown .25s ease;
-}
-@keyframes slideDown{
-  from{transform:translateY(-10px);opacity:0}
-  to{transform:none;opacity:1}
+  border-radius:18px;
+  padding:10px;
 }
 
-/* MENU ITEMS */
+/* MENU ITEM */
 .menu-item{
   padding:14px;
-  border-radius:16px;
+  border-radius:14px;
+  margin-bottom:8px;
   background:#23233b;
-  margin-bottom:10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
 }
-.menu-item.danger{background:#3a1f28}
-.menu-item.secondary{background:#1c1c2f}
-.menu-item span{opacity:.7;font-size:14px}
-
-/* PROGRESS */
-.progress{
-  height:6px;
-  background:#1a1a28;
-  border-radius:6px;
-  overflow:hidden;
+.menu-item.danger{
+  background:#3a1f28;
 }
-.progress div{
-  height:100%;
-  background:linear-gradient(135deg,#6d5dfc,#9b8cff);
+.menu-item small{
+  opacity:.7;
+  float:right;
 }
 
-/* ===== EXIT ANIMATION ===== */
+/* EXIT OVERLAY */
 #exitOverlay{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,.9);
+  background:rgba(0,0,0,.85);
   display:none;
   justify-content:center;
   align-items:center;
   flex-direction:column;
   z-index:2000;
 }
-#bin{
-  font-size:64px;
-  margin-top:20px;
-}
 .fadeOut{
   animation:trash .6s forwards;
 }
 @keyframes trash{
-  to{opacity:0;transform:scale(.5) translateY(40px)}
+  to{opacity:0;transform:scale(.6) translateY(40px)}
 }
 </style>
 </head>
@@ -171,76 +140,64 @@ button.send{
 
 <header class="room-header">
   <div>👻 Ghost Room</div>
-  <div class="header-right">
-    <div id="miniTimer" class="timer-dot">⏳</div>
-    <button id="menuBtn" class="menu-btn">☰</button>
-  </div>
+  <button id="menuBtn" class="menu-btn">☰</button>
 </header>
 
-<div id="messages" class="messages">
+<div class="messages" id="messages">
   <div class="system">👻 You are anonymous here. Silence is allowed.</div>
 </div>
 
 <div class="input-bar">
   <input id="msgInput" placeholder="Type without being known…">
-  <button id="sendBtn" class="send">Send</button>
+  <button class="send" id="sendBtn">Send</button>
 </div>
 
 <!-- MENU -->
-<div id="menu" class="menu">
-  <div class="menu-card">
-    <div class="menu-item secondary">
-      ⏳ Room expiry
-      <span id="roomExpiryText">—</span>
-    </div>
-    <div class="progress"><div id="roomExpiryBar"></div></div>
-
-    <div class="menu-item secondary">
+<div id="menuOverlay" class="menu-overlay">
+  <div class="menu">
+    <div class="menu-item">
       💤 Inactivity
-      <span id="inactiveExpiryText">—</span>
+      <small id="timerText">30m</small>
     </div>
-    <div class="progress"><div id="inactiveExpiryBar"></div></div>
-
-    <div class="menu-item">🔗 Share quietly</div>
-    <div class="menu-item">📜 Room rules</div>
-    <div class="menu-item danger" id="exitBtn">🗑️ Leave without a trace</div>
-    <div class="menu-item secondary" id="closeMenu">Cancel</div>
+    <div class="menu-item" id="shareBtn">
+      🔗 Share quietly
+    </div>
+    <div class="menu-item danger" id="exitBtn">
+      🗑️ Leave without a trace
+    </div>
   </div>
 </div>
 
 <!-- EXIT -->
 <div id="exitOverlay">
   <div>Messages fading…</div>
-  <div id="bin">🗑️</div>
+  <div style="font-size:64px;margin-top:20px">🗑️</div>
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded",()=>{
 
-const supabase = window.supabase.createClient(
-  "https://ehvusinvfwsaxguuebfc.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodnVzaW52ZndzYXhndXVlYmZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTcyMzYsImV4cCI6MjA4MjkzMzIzNn0.6W8OrbTz6RhN3P3R0KIN80Ec9GlkoMF4F0-Q4xRyy48"
-);
-
-const menu = document.getElementById("menu");
 const menuBtn = document.getElementById("menuBtn");
-const closeMenu = document.getElementById("closeMenu");
+const overlay = document.getElementById("menuOverlay");
 const sendBtn = document.getElementById("sendBtn");
 const msgInput = document.getElementById("msgInput");
 const messages = document.getElementById("messages");
 const exitBtn = document.getElementById("exitBtn");
 const exitOverlay = document.getElementById("exitOverlay");
-const miniTimer = document.getElementById("miniTimer");
-const inactiveText = document.getElementById("inactiveExpiryText");
-const inactiveBar = document.getElementById("inactiveExpiryBar");
+const shareBtn = document.getElementById("shareBtn");
+const timerText = document.getElementById("timerText");
 
 let lastActivity = Date.now();
 const LIMIT = 30*60*1000;
 
-menuBtn.onclick=()=>menu.style.display="flex";
-closeMenu.onclick=()=>menu.style.display="none";
+/* MENU */
+menuBtn.onclick = ()=> overlay.style.display="block";
+overlay.onclick = (e)=>{
+  if(e.target === overlay) overlay.style.display="none";
+};
 
-sendBtn.onclick=()=>{
+/* SEND */
+sendBtn.onclick = ()=>{
   const t = msgInput.value.trim();
   if(!t) return;
   lastActivity = Date.now();
@@ -249,24 +206,36 @@ sendBtn.onclick=()=>{
   d.textContent=t;
   messages.appendChild(d);
   msgInput.value="";
-  messages.scrollTop=messages.scrollHeight;
+  messages.scrollTop = messages.scrollHeight;
 };
 
-exitBtn.onclick=async()=>{
-  menu.style.display="none";
+/* SHARE */
+shareBtn.onclick = async ()=>{
+  try{
+    if(navigator.share){
+      await navigator.share({ url: location.href });
+    }else{
+      await navigator.clipboard.writeText(location.href);
+      alert("Room link copied");
+    }
+  }catch(e){}
+};
+
+/* EXIT */
+exitBtn.onclick = async ()=>{
+  overlay.style.display="none";
   exitOverlay.style.display="flex";
   document.querySelectorAll(".msg").forEach(m=>m.classList.add("fadeOut"));
   await new Promise(r=>setTimeout(r,900));
   location.href="/";
 };
 
+/* TIMER */
 setInterval(()=>{
   const left = LIMIT - (Date.now()-lastActivity);
   const m = Math.max(0,Math.floor(left/60000));
   const s = Math.max(0,Math.floor((left%60000)/1000));
-  inactiveText.textContent=`${m}m ${s}s`;
-  inactiveBar.style.width=`${(left/LIMIT)*100}%`;
-  miniTimer.textContent=`⏳ ${m}m`;
+  timerText.textContent = `${m}m ${s}s`;
   if(left<=0) exitBtn.onclick();
 },1000);
 
