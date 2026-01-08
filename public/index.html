@@ -15,166 +15,226 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-  <!-- Minimal fallback styles (only if CSS loads late) -->
+  <!-- Index-only refinements -->
   <style>
+    /* ===== Splash ===== */
+    #appSplash{
+      position:fixed;
+      inset:0;
+      background:radial-gradient(circle at top,#161844,#0A0B14 70%);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:9999;
+      animation:fadeOut 0.8s ease forwards;
+      animation-delay:2.4s;
+    }
+    #appSplash svg{
+      width:88px;
+      height:88px;
+    }
+
+    @keyframes fadeOut{
+      to{ opacity:0; visibility:hidden }
+    }
+
+    /* ===== Header ===== */
     .top{
       display:flex;
       align-items:center;
       padding:14px 18px;
-      background:rgba(10,11,20,.85);
-      backdrop-filter:blur(6px);
-      border-bottom:1px solid rgba(255,255,255,.04);
+      background:rgba(10,11,20,.75);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid rgba(255,255,255,.06);
     }
+
     .logo{
       display:flex;
       align-items:center;
       gap:12px;
     }
-    .ira-logo{width:36px;height:36px}
-    .logo-text{font-weight:600;color:#fff}
-    .home{padding:40px 20px;text-align:center}
+
+    .ira-logo{
+      width:34px;
+      height:34px;
+    }
+
+    .logo-text{
+      font-weight:600;
+      letter-spacing:.4px;
+    }
+
+    /* ===== Hero ===== */
+    .home{
+      padding:48px 20px 100px;
+      max-width:720px;
+      margin:0 auto;
+      text-align:left;
+    }
+
+    .hero-title{
+      font-size:36px;
+      line-height:1.15;
+      margin:0 0 12px;
+    }
+
+    .hero-sub{
+      font-size:16px;
+      line-height:1.6;
+      color:rgba(255,255,255,.65);
+      max-width:520px;
+    }
+
+    /* ===== Actions ===== */
     .room-actions{
       display:flex;
-      gap:12px;
-      justify-content:center;
-      margin-top:28px;
+      gap:14px;
+      margin-top:34px;
       flex-wrap:wrap;
     }
-    .primary-btn,.secondary-btn{
-      padding:12px 18px;
-      border-radius:12px;
-      border:0;
-      font-weight:600;
-      cursor:pointer;
+
+    .room-actions button{
+      min-width:140px;
     }
-    .primary-btn{
-      background:linear-gradient(135deg,#6F7CFF,#8E97FF);
-      color:#fff;
+
+    /* ===== Fade anchor ===== */
+    .fade-anchor{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      height:160px;
+      pointer-events:none;
+      background:linear-gradient(
+        to bottom,
+        rgba(10,11,20,0),
+        rgba(10,11,20,.9)
+      );
     }
-    .secondary-btn{
-      background:transparent;
-      border:1px solid rgba(255,255,255,.08);
-      color:#ddd;
+
+    /* ===== Animated logo wave ===== */
+    .ira-wave{
+      animation:waveMove 7s ease-in-out infinite;
     }
-    @media (min-width:720px){
-      .home{padding:80px 40px}
+
+    @keyframes waveMove{
+      0%,100%{ transform:translateY(0) }
+      50%{ transform:translateY(-2px) }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .ira-wave{ animation:none }
+      #appSplash{ animation:none }
     }
   </style>
 </head>
 
 <body>
-  <!-- APP SPLASH -->
+
+<!-- SPLASH -->
 <div id="appSplash">
-  <img src="/assets/ira-logo.svg" alt="IRA">
+  <svg viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="50" cy="50" r="42"
+      fill="none"
+      stroke="#8E97FF"
+      stroke-width="4"/>
+    <path class="ira-wave"
+      d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
+      fill="none"
+      stroke="#6F7CFF"
+      stroke-width="3"
+      stroke-linecap="round"/>
+  </svg>
 </div>
 
 <header class="top">
-  <div class="logo" title="IRA">
-    <!-- SVG preferred, PNG fallback -->
-    <img
-      src="/assets/ira-logo.svg"
-      alt="IRA logo"
-      class="ira-logo"
-      onerror="this.onerror=null;this.src='/ira-logo.png'"
-    />
+  <div class="logo">
+    <!-- Inline SVG for crisp animation -->
+    <svg class="ira-logo" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="42"
+        fill="none"
+        stroke="#6F7CFF"
+        stroke-width="4"/>
+      <path class="ira-wave"
+        d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
+        fill="none"
+        stroke="#8E97FF"
+        stroke-width="3"
+        stroke-linecap="round"/>
+    </svg>
     <span class="logo-text">IRA</span>
   </div>
 </header>
 
-<main class="home" role="main" aria-labelledby="hero-title">
-  <h1 id="hero-title" style="color:#fff;font-size:28px;margin:0 0 12px">
-    Speak freely.
-  </h1>
+<main class="home" role="main">
+  <h1 class="hero-title">Speak freely.</h1>
 
-  <p
-    class="hero-sub"
-    style="color:rgba(255,255,255,.65);max-width:720px;margin:0 auto"
-  >
+  <p class="hero-sub">
     Private rooms that appear quietly — and vanish without a trace.
   </p>
 
   <div class="room-actions">
-    <button class="primary-btn" id="createBtn" aria-label="Create a room">
+    <button class="primary-btn" id="createBtn">
       Create Room
     </button>
-    <button class="secondary-btn" id="joinBtn" aria-label="Join a room">
+    <button class="secondary-btn" id="joinBtn">
       Join Room
     </button>
   </div>
 
-  <div
-    id="statusMessage"
-    style="margin-top:18px;color:rgba(255,255,255,.5);font-size:13px"
-  ></div>
+  <div id="statusMessage"
+    style="margin-top:18px;font-size:13px;color:rgba(255,255,255,.5)">
+  </div>
 </main>
 
-<!-- Optional config (safe even if unused on index) -->
+<div class="fade-anchor"></div>
+
+<!-- Optional config -->
 <script src="config.js" defer></script>
 
 <script>
-  // Generate short, human-friendly room ID
   function makeRoomId(){
-    return Math.random().toString(36).slice(2, 9);
+    return Math.random().toString(36).slice(2,9);
   }
 
   function goToRoom(id){
     location.href = `room.html?room=${encodeURIComponent(id)}`;
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", ()=>{
     const createBtn = document.getElementById("createBtn");
     const joinBtn = document.getElementById("joinBtn");
     const status = document.getElementById("statusMessage");
 
-    createBtn.addEventListener("click", () => {
-      const id = makeRoomId();
-      goToRoom(id);
-    });
+    createBtn.onclick = ()=>{
+      goToRoom(makeRoomId());
+    };
 
-    joinBtn.addEventListener("click", () => {
-      let code = prompt("Enter room code (paste code or link):");
+    joinBtn.onclick = ()=>{
+      let code = prompt("Enter room code or link:");
       if(!code) return;
 
-      // Handle full URL paste
-      try {
+      try{
         const u = new URL(code, location.href);
-        const param = u.searchParams.get("room");
-        if(param) code = param;
-      } catch(e){}
+        code = u.searchParams.get("room") || code;
+      }catch(e){}
 
       code = code.trim();
-      if(!code){
-        alert("Invalid room code.");
-        return;
-      }
+      if(code) goToRoom(code);
+    };
 
-      goToRoom(code);
-    });
-
-    // PWA service worker registration
-    if ("serviceWorker" in navigator) {
+    if("serviceWorker" in navigator){
       navigator.serviceWorker.register("/sw.js")
-        .then(() => {
+        .then(()=>{
           status.textContent =
-            "App ready to install — use “Add to Home Screen” from your browser menu.";
+            "You can install IRA from your browser menu.";
         })
-        .catch(() => {
-          status.textContent =
-            "PWA service worker not registered.";
+        .catch(()=>{
+          status.textContent = "";
         });
-    } else {
-      status.textContent =
-        "Your browser does not support PWA features.";
     }
   });
 </script>
-<script>
-  window.addEventListener("load", ()=>{
-    const splash = document.getElementById("appSplash");
-    if(splash){
-      setTimeout(()=>splash.remove(), 2600);
-    }
-  });
-</script>
+
 </body>
 </html>
