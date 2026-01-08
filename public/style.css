@@ -1,3 +1,8 @@
+/* =========================================================
+   IRA — Silent Anonymous Rooms
+   Premium / Calm / Privacy-first UI
+   ========================================================= */
+
 :root{
   --ira-bg-main:#0A0B14;
   --ira-bg-soft:#0F1122;
@@ -11,19 +16,32 @@
   --ira-border-soft:rgba(255,255,255,0.08);
 }
 
-*{ box-sizing:border-box }
+/* ================= RESET ================= */
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;
+  padding:0;
+  min-height:100%;
+}
 
 body{
-  margin:0;
-  min-height:100vh;
   background:
     radial-gradient(circle at top, #161844, var(--ira-bg-main) 70%);
   color:var(--ira-text-main);
-  font-family:Inter,system-ui,-apple-system;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont;
+  -webkit-font-smoothing:antialiased;
 }
 
 /* ================= HEADER ================= */
-.top, .room-header{
+.top,
+.room-header{
+  position:sticky;
+  top:0;
+  z-index:100;
   padding:14px 18px;
   background:rgba(10,11,20,0.75);
   backdrop-filter:blur(10px);
@@ -33,7 +51,8 @@ body{
   align-items:center;
 }
 
-.logo, .header-left{
+.logo,
+.header-left{
   display:flex;
   align-items:center;
   gap:12px;
@@ -42,21 +61,27 @@ body{
 .logo-text{
   font-size:18px;
   font-weight:600;
-  letter-spacing:.5px;
+  letter-spacing:.4px;
 }
 
-/* SVG LOGO */
+/* ================= LOGO ================= */
 .ira-logo{
   width:34px;
   height:34px;
   filter:drop-shadow(0 0 16px rgba(111,124,255,.45));
 }
-.ira-ring{ animation:breath 6s ease-in-out infinite; }
-.ira-wave{ animation:wave 4.5s ease-in-out infinite; }
+
+/* breathing animation (used if SVG inline later) */
+.ira-ring{
+  animation:breath 6s ease-in-out infinite;
+}
+.ira-wave{
+  animation:wave 4.5s ease-in-out infinite;
+}
 
 @keyframes breath{
-  0%,100%{opacity:.85;stroke-width:3.5}
-  50%{opacity:1;stroke-width:4.5}
+  0%,100%{opacity:.85}
+  50%{opacity:1}
 }
 @keyframes wave{
   0%,100%{transform:translateY(0)}
@@ -65,13 +90,13 @@ body{
 
 /* ================= HOME ================= */
 .home{
-  padding:28px 18px 60px;
+  padding:28px 18px 64px;
 }
 
 h1{
   font-size:34px;
   line-height:1.15;
-  margin-bottom:12px;
+  margin:0 0 12px;
 }
 
 .hero-sub{
@@ -80,31 +105,41 @@ h1{
   color:var(--ira-text-muted);
 }
 
+/* ================= ACTIONS ================= */
 .room-actions{
   display:flex;
   gap:14px;
   margin:28px 0 40px;
 }
-.room-actions button{ flex:1 }
+
+.room-actions button{
+  flex:1;
+}
 
 /* ================= BUTTONS ================= */
 button{
   border:none;
-  cursor:pointer;
   border-radius:18px;
-  font-size:15px;
   padding:14px 20px;
+  font-size:15px;
+  cursor:pointer;
+  transition:transform .15s ease,opacity .15s ease;
+}
+
+button:active{
+  transform:scale(.97);
 }
 
 .primary-btn{
   background:linear-gradient(135deg,var(--ira-primary),var(--ira-primary-soft));
-  color:white;
+  color:#fff;
   font-weight:600;
 }
 
 .secondary-btn{
   background:#141633;
   color:var(--ira-text-muted);
+  border:1px solid var(--ira-border-soft);
 }
 
 .ghost-btn{
@@ -134,6 +169,7 @@ button{
 .msg.you{
   align-self:flex-end;
   background:linear-gradient(135deg,var(--ira-primary),var(--ira-primary-soft));
+  color:#fff;
   border-radius:18px 18px 6px 18px;
 }
 
@@ -176,6 +212,10 @@ button{
   outline:none;
 }
 
+.input-bar input::placeholder{
+  color:rgba(255,255,255,.35);
+}
+
 /* ================= MENU ================= */
 .menu-overlay{
   position:fixed;
@@ -195,6 +235,7 @@ button{
   backdrop-filter:blur(14px);
   border-radius:18px;
   padding:10px;
+  border:1px solid var(--ira-border-soft);
 }
 
 .menu-item{
@@ -204,8 +245,26 @@ button{
   background:#23233b;
   display:flex;
   justify-content:space-between;
+  align-items:center;
   font-size:14px;
+  color:#fff;
 }
 
-.menu-item.danger{ background:#3a1f28 }
-.menu-item:last-child{margin-bottom:0}
+.menu-item.danger{
+  background:#3a1f28;
+  color:#ffb6c1;
+}
+
+.menu-item:last-child{
+  margin-bottom:0;
+}
+
+/* ================= DESKTOP ================= */
+@media(min-width:768px){
+  .home{
+    padding:80px 40px;
+  }
+  .hero-sub{
+    font-size:17px;
+  }
+}
