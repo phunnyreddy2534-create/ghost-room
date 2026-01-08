@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 100 100"
+     width="100"
+     height="100">
+
+  <defs>
+    <linearGradient id="iraGlow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6F7CFF"/>
+      <stop offset="100%" stop-color="#8E97FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer presence ring -->
+  <circle cx="50" cy="50"
+          r="42"
+          fill="none"
+          stroke="url(#iraGlow)"
+          stroke-width="4"
+          opacity="0.9"/>
+
+  <!-- Inner breath wave -->
+  <path d="M20 52
+           C30 46 40 46 50 52
+           C60 58 70 58 80 52"
+        fill="none"
+        stroke="url(#iraGlow)"
+        stroke-width="3"
+        stroke-linecap="round"/>
+</svg>
