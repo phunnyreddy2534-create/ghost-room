@@ -11,7 +11,9 @@
   --ira-border-soft:rgba(255,255,255,0.08);
 }
 
-*{ box-sizing:border-box }
+*{
+  box-sizing:border-box;
+}
 
 body{
   margin:0;
@@ -128,7 +130,9 @@ button{
   color:var(--ira-text-muted);
 }
 
-.ghost-btn.wide{ width:100% }
+.ghost-btn.wide{
+  width:100%;
+}
 
 /* ===== MODAL ===== */
 .modal{
@@ -142,7 +146,9 @@ button{
   z-index:1000;
 }
 
-.hidden{ display:none }
+.hidden{
+  display:none;
+}
 
 .premium-card{
   width:92%;
@@ -163,9 +169,14 @@ button{
 }
 
 /* ===== FORM ===== */
-.option{ margin-bottom:20px }
+.option{
+  margin-bottom:20px;
+}
 
-.range{ width:100%; margin-top:12px }
+.range{
+  width:100%;
+  margin-top:12px;
+}
 
 .range-helper,
 .hint{
