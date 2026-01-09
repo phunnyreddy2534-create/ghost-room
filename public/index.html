@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <title>IRA — Silent Anonymous Rooms</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <link rel="stylesheet" href="style.css">
 
+<!-- Supabase (UMD REQUIRED) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/config.js"></script>
 </head>
@@ -29,53 +31,57 @@
 </main>
 
 <script>
-/* ===== INIT ===== */
-const supabase = window.supabase.createClient(
-  IRA_CONFIG.SUPABASE_URL,
-  IRA_CONFIG.SUPABASE_ANON_KEY
-);
+document.addEventListener("DOMContentLoaded", () => {
 
-/* ===== HELPERS ===== */
-function generateRoomCode(){
-  return Math.random().toString(36).slice(2, 9);
-}
+  /* ===== SUPABASE INIT ===== */
+  const supabase = window.supabase.createClient(
+    IRA_CONFIG.SUPABASE_URL,
+    IRA_CONFIG.SUPABASE_ANON_KEY
+  );
 
-/* ===== CREATE ROOM ===== */
-document.getElementById("createBtn").addEventListener("click", async () => {
-  const roomCode = generateRoomCode();
-  const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-
-  const { error } = await supabase.from("rooms").insert({
-    room_code: roomCode,
-    expires_at: expiresAt.toISOString()
-  });
-
-  if (error) {
-    alert("Failed to create room");
-    console.error(error);
-    return;
+  /* ===== HELPERS ===== */
+  function generateRoomCode(){
+    return Math.random().toString(36).slice(2, 9);
   }
 
-  location.href = `/room.html?room=${roomCode}`;
-});
+  /* ===== CREATE ROOM ===== */
+  document.getElementById("createBtn").onclick = async () => {
+    const roomCode = generateRoomCode();
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
-/* ===== JOIN ROOM ===== */
-document.getElementById("joinBtn").addEventListener("click", async () => {
-  const code = prompt("Enter room code");
-  if (!code) return;
+    const { error } = await supabase.from("rooms").insert({
+      room_code: roomCode,
+      expires_at: expiresAt.toISOString()
+    });
 
-  const { data } = await supabase
-    .from("rooms")
-    .select("room_code")
-    .eq("room_code", code)
-    .maybeSingle();
+    if (error) {
+      alert("Failed to create room");
+      console.error(error);
+      return;
+    }
 
-  if (!data) {
-    alert("Room does not exist");
-    return;
-  }
+    location.href = `/room.html?room=${roomCode}`;
+  };
 
-  location.href = `/room.html?room=${code}`;
+  /* ===== JOIN ROOM ===== */
+  document.getElementById("joinBtn").onclick = async () => {
+    const code = prompt("Enter room code");
+    if (!code) return;
+
+    const { data } = await supabase
+      .from("rooms")
+      .select("room_code")
+      .eq("room_code", code)
+      .maybeSingle();
+
+    if (!data) {
+      alert("Room does not exist");
+      return;
+    }
+
+    location.href = `/room.html?room=${code}`;
+  };
+
 });
 </script>
 
