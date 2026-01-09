@@ -54,7 +54,7 @@
 </main>
 
 <!-- ================= INPUT ================= -->
-<footer class="input-bar">
+<footer class="input-bar" id="inputBar">
   <input
     id="msgInput"
     placeholder="Type without being known…"
@@ -75,21 +75,103 @@
 <script type="module">
   import { initMessages } from "./components/messages.js";
 
-  document.addEventListener("DOMContentLoaded", () => {
-    /* ---------------- ROOM EXPIRY RING ---------------- */
-    const meta = JSON.parse(sessionStorage.getItem("ira_room_meta") || "{}");
-    const createdAt = meta.created || Date.now();
-    const durationMs = (meta.duration || 30) * 60 * 1000;
-    const expiresAt = createdAt + durationMs;
+  document.addEventListener("DOMContentLoaded", async () => {
+
+    /* ================= SESSION ID ================= */
+    const SESSION_ID =
+      sessionStorage.getItem("ira_session") ||
+      (() => {
+        const id = crypto.randomUUID();
+        sessionStorage.setItem("ira_session", id);
+        return id;
+      })();
+
+    /* ================= SUPABASE ================= */
+    const supabase = window.supabase.createClient(
+      IRA_CONFIG.SUPABASE_URL,
+      IRA_CONFIG.SUPABASE_ANON_KEY
+    );
+
+    const roomCode = new URLSearchParams(location.search).get("room");
+    const inputBar = document.getElementById("inputBar");
+
+    if (!roomCode) {
+      location.href = "/";
+      return;
+    }
+
+    /* ================= ROOM VALIDATION ================= */
+    const { data: room, error } = await supabase
+      .from("rooms")
+      .select("*")
+      .eq("room_code", roomCode)
+      .single();
+
+    if (error || !room) {
+      document.body.innerHTML = `
+        <div style="
+          height:100vh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          background:#0A0B14;
+          color:white;
+          text-align:center">
+          <div>
+            <div style="opacity:.6">This room no longer exists.</div>
+            <button class="primary-btn"
+              style="margin-top:24px"
+              onclick="location.href='/'">
+              Go Home
+            </button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    /* ================= EXPIRY ================= */
+    const createdAt = new Date(room.created_at).getTime();
+    const expiresAt = new Date(room.expires_at).getTime();
+    const durationMs = expiresAt - createdAt;
     const ring = document.getElementById("expiryRing");
+
+    let ended = false;
+
+    async function endRoom() {
+      if (ended) return;
+      ended = true;
+
+      inputBar.style.opacity = .3;
+      inputBar.style.pointerEvents = "none";
+
+      await supabase.from("messages").delete().eq("room_code", roomCode);
+      await supabase.from("rooms").delete().eq("room_code", roomCode);
+
+      const end = document.createElement("div");
+      end.className = "room-ended";
+      end.innerHTML = `
+        <div style="opacity:.6">This room has faded.</div>
+        <button class="primary-btn"
+          style="margin-top:24px"
+          onclick="location.href='/'">
+          Leave quietly
+        </button>
+      `;
+      document.body.appendChild(end);
+    }
 
     setInterval(() => {
       const remaining = expiresAt - Date.now();
       const progress = Math.max(remaining / durationMs, 0);
       ring.style.opacity = Math.max(progress, 0.15);
+
+      if (remaining <= 0) {
+        endRoom();
+      }
     }, 1000);
 
-    /* ---------------- MENU ---------------- */
+    /* ================= MENU ================= */
     const menuOverlay = document.getElementById("menuOverlay");
 
     document.getElementById("menuBtn").onclick = () => {
@@ -109,10 +191,7 @@
     document.getElementById("shareBtn").onclick = async () => {
       try {
         if (navigator.share) {
-          await navigator.share({
-            title: "IRA Room",
-            url: location.href
-          });
+          await navigator.share({ title: "IRA Room", url: location.href });
         } else {
           await navigator.clipboard.writeText(location.href);
           alert("Room link copied");
@@ -120,7 +199,7 @@
       } catch {}
     };
 
-    /* ---------------- INIT MESSAGES ---------------- */
+    /* ================= INIT CHAT ================= */
     initMessages();
   });
 </script>
