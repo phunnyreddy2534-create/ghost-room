@@ -11,6 +11,38 @@
 <script src="config.js"></script>
 
 <style>
+/* ===== Layout Fix ===== */
+body {
+  margin:0;
+  padding:0;
+  height:100vh;
+  overflow:hidden;
+}
+
+.messages {
+  position:absolute;
+  top:64px;
+  bottom:88px; /* space for input bar */
+  left:0;
+  right:0;
+  overflow-y:auto;
+  padding:18px 16px;
+}
+
+.input-bar {
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  padding:12px;
+  background:linear-gradient(
+    to top,
+    rgba(10,10,20,.95),
+    rgba(10,10,20,.7)
+  );
+  backdrop-filter:blur(10px);
+}
+
 /* ===== Expiry Ring ===== */
 .ira-ring {
   transition: opacity 2s linear;
@@ -41,7 +73,10 @@
   animation:fadeIn 1s ease forwards;
 }
 
-@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes fadeIn {
+  from { opacity:0 }
+  to { opacity:1 }
+}
 </style>
 </head>
 
@@ -96,7 +131,6 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-  /* ===== BASIC STATE ===== */
   const roomCode = new URLSearchParams(location.search).get("room");
   const meta = JSON.parse(sessionStorage.getItem("ira_room_meta") || "{}");
 
@@ -110,7 +144,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let ended = false;
 
-  /* ===== SUPABASE ===== */
   const supabase = window.supabase.createClient(
     IRA_CONFIG.SUPABASE_URL,
     IRA_CONFIG.SUPABASE_ANON_KEY
@@ -120,7 +153,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const emptyHint = document.getElementById("emptyHint");
   const msgInput = document.getElementById("msgInput");
 
-  /* ===== MESSAGE SEND ===== */
   document.getElementById("sendBtn").onclick = async () => {
     if (ended) return;
     const t = msgInput.value.trim();
@@ -136,7 +168,6 @@ document.addEventListener("DOMContentLoaded", () => {
     msgInput.value = "";
   };
 
-  /* ===== RENDER ===== */
   function renderMessage(m){
     emptyHint?.remove();
     const d = document.createElement("div");
@@ -165,17 +196,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }, p => renderMessage(p.new))
     .subscribe();
 
-  /* ===== EXPIRY ENGINE ===== */
   function updateExpiry(){
     if (ended) return;
 
-    const now = Date.now();
-    const remaining = expiresAt - now;
+    const remaining = expiresAt - Date.now();
     const progress = Math.max(remaining / durationMs, 0);
 
     ring.style.opacity = Math.max(progress, 0.15);
 
-    // PHASE MESSAGES
     if (progress < 0.5 && progress > 0.2) {
       showPhase("This room will fade soon.");
     } else if (progress <= 0.2 && progress > 0) {
@@ -209,19 +237,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setInterval(updateExpiry, 1000);
 
-  /* ===== MENU ===== */
-  const menuBtn = document.getElementById("menuBtn");
-  const menuOverlay = document.getElementById("menuOverlay");
-
-  menuBtn.onclick = ()=>menuOverlay.style.display="block";
-  menuOverlay.onclick = e => {
-    if (e.target === menuOverlay) menuOverlay.style.display="none";
+  document.getElementById("menuBtn").onclick = ()=>{
+    document.getElementById("menuOverlay").style.display="block";
   };
-
-  document.getElementById("exitBtn").onclick = ()=>{
-    location.href="/";
+  document.getElementById("menuOverlay").onclick = e=>{
+    if(e.target.id==="menuOverlay") e.target.style.display="none";
   };
-
+  document.getElementById("exitBtn").onclick = ()=>location.href="/";
   document.getElementById("shareBtn").onclick = async ()=>{
     try{
       if(navigator.share){
