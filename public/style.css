@@ -437,3 +437,27 @@ textarea{ resize:none }
   font-size:13px;
   margin-top:8px;
 }
+/* ===== Message Bubbles (CRITICAL FIX) ===== */
+
+.msg {
+  max-width: 78%;
+  padding: 12px 14px;
+  margin: 8px 0;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  animation: msgIn .25s ease;
+}
+
+.msg.other {
+  background: rgba(40, 44, 90, 0.85);
+  color: #ffffff;
+  align-self: flex-start;
+  box-shadow: 0 6px 18px rgba(0,0,0,.25);
+}
+
+@keyframes msgIn {
+  from { opacity:0; transform: translateY(6px); }
+  to   { opacity:1; transform:none; }
+}
