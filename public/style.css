@@ -340,3 +340,28 @@ textarea{ resize:none }
   .home{ padding:80px 40px }
   .hero-sub{ font-size:17px }
 }
+/* ================= FIX CLICK BLOCK ================= */
+
+/* Ensure main content is clickable */
+.home {
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+/* Prevent background layers from blocking clicks */
+body::before,
+body::after {
+  pointer-events: none;
+}
+
+/* Ensure buttons receive touch events */
+button {
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+/* Fix mobile flex click bug */
+body {
+  overflow-x: hidden;
+}
