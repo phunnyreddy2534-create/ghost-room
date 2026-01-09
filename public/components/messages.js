@@ -1,55 +1,69 @@
-// components/messages.js
 import { supabase } from "../services/supabase.js";
 
-let roomCode = null;
-let channel = null;
-
-const messagesEl = document.getElementById("messages");
-const msgInput = document.getElementById("msgInput");
-const sendBtn = document.getElementById("sendBtn");
-const emptyHint = document.getElementById("emptyHint");
-
-/* ------------------------------
-   INIT
---------------------------------*/
 export function initMessages() {
-  roomCode = new URLSearchParams(location.search).get("room");
+  const roomCode = new URLSearchParams(location.search).get("room");
+  const messagesEl = document.getElementById("messages");
+  const input = document.getElementById("msgInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const emptyHint = document.getElementById("emptyHint");
 
-  if (!roomCode) {
-    alert("Invalid room link");
-    location.href = "/";
+  if (!roomCode || !sendBtn || !input) {
+    console.error("Missing room or UI elements");
     return;
   }
 
-  loadHistory();
-  initRealtime();
-  bindSend();
-}
+  /* ===== LOAD EXISTING MESSAGES ===== */
+  async function loadMessages() {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("room_code", roomCode)
+      .order("created_at", { ascending: true });
 
-/* ------------------------------
-   LOAD HISTORY
---------------------------------*/
-async function loadHistory() {
-  const { data, error } = await supabase
-    .from("messages")
-    .select("*")
-    .eq("room_code", roomCode)
-    .order("created_at", { ascending: true });
+    if (error) {
+      console.error("Load messages error:", error);
+      return;
+    }
 
-  if (error) {
-    console.error("Load messages failed:", error);
-    return;
+    if (data.length > 0) {
+      emptyHint.style.display = "none";
+    }
+
+    data.forEach(addMessage);
   }
 
-  data.forEach(renderMessage);
-  scrollBottom();
-}
+  /* ===== ADD MESSAGE TO UI ===== */
+  function addMessage(msg) {
+    emptyHint.style.display = "none";
 
-/* ------------------------------
-   REALTIME
---------------------------------*/
-function initRealtime() {
-  channel = supabase
+    const div = document.createElement("div");
+    div.className = "message";
+    div.textContent = msg.content;
+
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  /* ===== SEND MESSAGE ===== */
+  sendBtn.onclick = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = "";
+
+    const { error } = await supabase.from("messages").insert({
+      room_code: roomCode,
+      content: text
+    });
+
+    if (error) {
+      console.error("Insert failed:", error);
+      alert("Message failed to send");
+    }
+  };
+
+  /* ===== REALTIME ===== */
+  supabase
     .channel(`room-${roomCode}`)
     .on(
       "postgres_changes",
@@ -57,59 +71,13 @@ function initRealtime() {
         event: "INSERT",
         schema: "public",
         table: "messages",
-        filter: `room_code=eq.${roomCode}`
+        filter: `room_code=eq.${encodeURIComponent(roomCode)}`
       },
       payload => {
-        renderMessage(payload.new);
-        scrollBottom();
+        addMessage(payload.new);
       }
     )
     .subscribe();
-}
 
-/* ------------------------------
-   SEND MESSAGE
---------------------------------*/
-function bindSend() {
-  sendBtn.addEventListener("click", sendMessage);
-  msgInput.addEventListener("keydown", e => {
-    if (e.key === "Enter") sendMessage();
-  });
-}
-
-async function sendMessage() {
-  const text = msgInput.value.trim();
-  if (!text) return;
-
-  msgInput.value = "";
-
-  const { error } = await supabase.from("messages").insert({
-    room_code: roomCode,
-    content: text,
-    sender: "anon"
-  });
-
-  if (error) {
-    console.error("Send failed:", error);
-  }
-}
-
-/* ------------------------------
-   RENDER
---------------------------------*/
-function renderMessage(message) {
-  emptyHint?.remove();
-
-  const bubble = document.createElement("div");
-  bubble.className = "msg other";
-  bubble.textContent = message.content;
-
-  messagesEl.appendChild(bubble);
-}
-
-/* ------------------------------
-   HELPERS
---------------------------------*/
-function scrollBottom() {
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  loadMessages();
 }
