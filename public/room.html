@@ -7,36 +7,77 @@
 
 <link rel="stylesheet" href="style.css">
 
-<!-- Supabase + Config -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+
+<style>
+/* ===== Expiry Ring ===== */
+.ira-ring {
+  transition: opacity 2s linear;
+}
+
+.room-phase {
+  position:fixed;
+  top:64px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:13px;
+  color:rgba(255,255,255,.45);
+  opacity:0;
+  transition:opacity 1.2s ease;
+  pointer-events:none;
+}
+
+.room-ended {
+  position:fixed;
+  inset:0;
+  background:rgba(10,10,20,.92);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  z-index:3000;
+  animation:fadeIn 1s ease forwards;
+}
+
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+</style>
 </head>
 
 <body>
 
 <header class="room-header">
   <div class="header-left">
-    <!-- Unified IRA logo (same concept everywhere) -->
-    <svg class="ira-logo" viewBox="0 0 100 100" aria-hidden="true">
+    <svg class="ira-logo" viewBox="0 0 100 100">
       <defs>
         <linearGradient id="iraGlow" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stop-color="#6F7CFF"/>
           <stop offset="100%" stop-color="#8E97FF"/>
         </linearGradient>
       </defs>
-      <circle cx="50" cy="50" r="42" fill="none" stroke="url(#iraGlow)" stroke-width="4" class="ira-ring"/>
+      <circle cx="50" cy="50" r="42"
+        fill="none"
+        stroke="url(#iraGlow)"
+        stroke-width="4"
+        class="ira-ring"
+        id="expiryRing"/>
       <path d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
-        fill="none" stroke="url(#iraGlow)" stroke-width="3" stroke-linecap="round" class="ira-wave"/>
+        fill="none"
+        stroke="url(#iraGlow)"
+        stroke-width="3"
+        stroke-linecap="round"/>
     </svg>
     <span class="logo-text">IRA</span>
   </div>
-
-  <button id="menuBtn" class="menu-btn" aria-label="Room menu">☰</button>
+  <button id="menuBtn" class="menu-btn">☰</button>
 </header>
 
+<div class="room-phase" id="roomPhase"></div>
+
 <main class="messages" id="messages">
-  <div class="system">You are anonymous here. Silence is allowed.</div>
-  <div class="system" id="emptyHint">This room is quiet. You can speak.</div>
+  <div class="system">You are anonymous here.</div>
+  <div class="system" id="emptyHint">This room is quiet.</div>
 </main>
 
 <footer class="input-bar" id="inputBar">
@@ -45,99 +86,57 @@
 </footer>
 
 <!-- MENU -->
-<div id="menuOverlay" class="menu-overlay" aria-hidden="true">
+<div id="menuOverlay" class="menu-overlay">
   <div class="menu">
     <div class="menu-item" id="shareBtn">🔗 Share quietly</div>
     <div class="menu-item danger" id="exitBtn">🗑️ Leave room</div>
   </div>
 </div>
 
-<!-- EXIT OVERLAY -->
-<div id="exitOverlay" style="
-  position:fixed;inset:0;display:none;
-  background:rgba(0,0,0,.9);
-  align-items:center;justify-content:center;
-  flex-direction:column;z-index:2000">
-  <div style="opacity:.7">Messages fading…</div>
-  <div style="font-size:64px;margin-top:18px">🗑️</div>
-</div>
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-  /* ---------- STATE ---------- */
+  /* ===== BASIC STATE ===== */
   const roomCode = new URLSearchParams(location.search).get("room");
-  let exiting = false;
+  const meta = JSON.parse(sessionStorage.getItem("ira_room_meta") || "{}");
 
-  /* ---------- SUPABASE ---------- */
+  const createdAt = meta.created || Date.now();
+  const durationMs = (meta.duration || 30) * 60 * 1000;
+  const expiresAt = createdAt + durationMs;
+
+  const ring = document.getElementById("expiryRing");
+  const phaseText = document.getElementById("roomPhase");
+  const inputBar = document.getElementById("inputBar");
+
+  let ended = false;
+
+  /* ===== SUPABASE ===== */
   const supabase = window.supabase.createClient(
     IRA_CONFIG.SUPABASE_URL,
     IRA_CONFIG.SUPABASE_ANON_KEY
   );
 
-  /* ---------- DOM ---------- */
   const messagesEl = document.getElementById("messages");
   const emptyHint = document.getElementById("emptyHint");
   const msgInput = document.getElementById("msgInput");
-  const sendBtn = document.getElementById("sendBtn");
 
-  const menuBtn = document.getElementById("menuBtn");
-  const menuOverlay = document.getElementById("menuOverlay");
-  const shareBtn = document.getElementById("shareBtn");
-  const exitBtn = document.getElementById("exitBtn");
-  const exitOverlay = document.getElementById("exitOverlay");
-
-  /* ---------- MENU ---------- */
-  menuBtn.onclick = () => {
-    menuOverlay.style.display = "block";
-    menuOverlay.setAttribute("aria-hidden","false");
-  };
-
-  menuOverlay.onclick = (e) => {
-    if (e.target === menuOverlay) closeMenu();
-  };
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeMenu();
-  });
-
-  function closeMenu(){
-    menuOverlay.style.display = "none";
-    menuOverlay.setAttribute("aria-hidden","true");
-  }
-
-  /* ---------- SHARE (always works) ---------- */
-  shareBtn.onclick = async () => {
-    closeMenu();
-    try{
-      if (navigator.share){
-        await navigator.share({
-          title: "IRA Room",
-          url: location.href
-        });
-      } else {
-        await navigator.clipboard.writeText(location.href);
-        toast("Room link copied");
-      }
-    } catch(e){}
-  };
-
-  /* ---------- SEND MESSAGE ---------- */
-  sendBtn.onclick = async () => {
-    const text = msgInput.value.trim();
-    if (!text || exiting) return;
+  /* ===== MESSAGE SEND ===== */
+  document.getElementById("sendBtn").onclick = async () => {
+    if (ended) return;
+    const t = msgInput.value.trim();
+    if (!t) return;
 
     emptyHint?.remove();
 
     await supabase.from("messages").insert({
       room_code: roomCode,
-      content: text
+      content: t
     });
 
     msgInput.value = "";
   };
 
-  /* ---------- RENDER MESSAGE ---------- */
+  /* ===== RENDER ===== */
   function renderMessage(m){
     emptyHint?.remove();
     const d = document.createElement("div");
@@ -147,57 +146,91 @@ document.addEventListener("DOMContentLoaded", () => {
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  /* ---------- LOAD HISTORY ---------- */
   async function loadMessages(){
     const { data } = await supabase
       .from("messages")
       .select("*")
       .eq("room_code", roomCode)
-      .order("created_at", { ascending: true });
-
+      .order("created_at",{ascending:true});
     data?.forEach(renderMessage);
   }
 
-  /* ---------- REALTIME ---------- */
   supabase
     .channel("room-"+roomCode)
-    .on("postgres_changes", {
-      event: "INSERT",
-      schema: "public",
-      table: "messages",
-      filter: `room_code=eq.${roomCode}`
-    }, payload => renderMessage(payload.new))
+    .on("postgres_changes",{
+      event:"INSERT",
+      schema:"public",
+      table:"messages",
+      filter:`room_code=eq.${roomCode}`
+    }, p => renderMessage(p.new))
     .subscribe();
 
-  /* ---------- EXIT (guaranteed animation) ---------- */
-  exitBtn.onclick = async () => {
-    if (exiting) return;
-    exiting = true;
+  /* ===== EXPIRY ENGINE ===== */
+  function updateExpiry(){
+    if (ended) return;
 
-    closeMenu();
-    exitOverlay.style.display = "flex";
+    const now = Date.now();
+    const remaining = expiresAt - now;
+    const progress = Math.max(remaining / durationMs, 0);
 
-    document.querySelectorAll(".msg").forEach((m,i)=>{
-      setTimeout(()=>m.style.opacity="0", i*60);
-    });
+    ring.style.opacity = Math.max(progress, 0.15);
 
-    setTimeout(() => location.href="/", 900);
+    // PHASE MESSAGES
+    if (progress < 0.5 && progress > 0.2) {
+      showPhase("This room will fade soon.");
+    } else if (progress <= 0.2 && progress > 0) {
+      showPhase("A few moments remain.");
+    }
+
+    if (remaining <= 0) endRoom();
+  }
+
+  function showPhase(text){
+    if (phaseText.textContent === text) return;
+    phaseText.textContent = text;
+    phaseText.style.opacity = 1;
+    setTimeout(()=>phaseText.style.opacity = 0, 4000);
+  }
+
+  function endRoom(){
+    ended = true;
+    inputBar.style.opacity = .2;
+    inputBar.style.pointerEvents = "none";
+
+    const end = document.createElement("div");
+    end.className = "room-ended";
+    end.innerHTML = `
+      <div style="opacity:.6">This room has ended.</div>
+      <button class="primary-btn" style="margin-top:24px"
+        onclick="location.href='/'">Leave quietly</button>
+    `;
+    document.body.appendChild(end);
+  }
+
+  setInterval(updateExpiry, 1000);
+
+  /* ===== MENU ===== */
+  const menuBtn = document.getElementById("menuBtn");
+  const menuOverlay = document.getElementById("menuOverlay");
+
+  menuBtn.onclick = ()=>menuOverlay.style.display="block";
+  menuOverlay.onclick = e => {
+    if (e.target === menuOverlay) menuOverlay.style.display="none";
   };
 
-  /* ---------- TOAST ---------- */
-  function toast(text){
-    const t = document.createElement("div");
-    t.textContent = text;
-    t.style.cssText = `
-      position:fixed;bottom:24px;left:50%;
-      transform:translateX(-50%);
-      background:#23233b;color:#fff;
-      padding:10px 14px;border-radius:12px;
-      font-size:13px;z-index:3000
-    `;
-    document.body.appendChild(t);
-    setTimeout(()=>t.remove(),1800);
-  }
+  document.getElementById("exitBtn").onclick = ()=>{
+    location.href="/";
+  };
+
+  document.getElementById("shareBtn").onclick = async ()=>{
+    try{
+      if(navigator.share){
+        await navigator.share({title:"IRA Room",url:location.href});
+      } else {
+        await navigator.clipboard.writeText(location.href);
+      }
+    }catch(e){}
+  };
 
   loadMessages();
 });
