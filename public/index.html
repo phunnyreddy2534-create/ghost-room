@@ -58,9 +58,10 @@
       to{opacity:1;transform:none}
     }
 
-    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
     .field span{font-size:13px;color:rgba(255,255,255,.7)}
-    .field input,.field textarea,.field select{
+
+    .field input,.field textarea{
       background:#141633;
       border:none;
       border-radius:14px;
@@ -70,12 +71,39 @@
       outline:none;
     }
 
+    /* ===== Slider ===== */
+    .slider-wrap{
+      background:#141633;
+      border-radius:16px;
+      padding:14px;
+    }
+
+    .slider-label{
+      display:flex;
+      justify-content:space-between;
+      font-size:13px;
+      color:rgba(255,255,255,.7);
+      margin-bottom:6px;
+    }
+
+    input[type="range"]{
+      width:100%;
+    }
+
+    .slider-value{
+      text-align:center;
+      margin-top:8px;
+      font-size:14px;
+      color:#9fa7ff;
+      font-weight:500;
+    }
+
     .agree{
       display:flex;
       gap:10px;
       font-size:13px;
       color:rgba(255,255,255,.7);
-      margin:10px 0;
+      margin:12px 0;
     }
 
     .terms-warning{
@@ -87,7 +115,7 @@
     .card-actions{
       display:flex;
       gap:12px;
-      margin-top:16px;
+      margin-top:18px;
     }
 
     .primary-btn[disabled]{
@@ -135,7 +163,7 @@
   <div class="glass-card">
 
     <h2>Create a quiet room</h2>
-    <p class="subtitle">This room will disappear automatically.</p>
+    <p class="subtitle">Only people with the link can enter. This room will disappear.</p>
 
     <label class="field">
       <span>Room name (optional)</span>
@@ -147,14 +175,17 @@
       <textarea id="roomDesc" rows="3" placeholder="What is this room for?"></textarea>
     </label>
 
+    <!-- SLIDER -->
     <div class="field">
-      <span>Room duration</span>
-      <select id="roomDuration">
-        <option value="30">30 minutes</option>
-        <option value="60">1 hour</option>
-        <option value="180">3 hours</option>
-        <option value="1440">24 hours</option>
-      </select>
+      <span>How long should this room exist?</span>
+      <div class="slider-wrap">
+        <div class="slider-label">
+          <span>Short</span>
+          <span>Long</span>
+        </div>
+        <input type="range" id="roomDuration" min="0" max="4" step="1" value="1">
+        <div class="slider-value" id="durationText"></div>
+      </div>
     </div>
 
     <label class="agree">
@@ -184,6 +215,14 @@ function goToRoom(id){
   location.href = `room.html?room=${encodeURIComponent(id)}`;
 }
 
+const DURATIONS = [
+  {label:"15 minutes — Short moment", value:15},
+  {label:"30 minutes — Quiet space", value:30},
+  {label:"1 hour — Deep talk", value:60},
+  {label:"3 hours — Long presence", value:180},
+  {label:"24 hours — Lasts a day", value:1440}
+];
+
 document.addEventListener("DOMContentLoaded", ()=>{
 
   const createBtn = document.getElementById("createBtn");
@@ -193,6 +232,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const confirmCreate = document.getElementById("confirmCreate");
   const agreeTerms = document.getElementById("agreeTerms");
   const warning = document.getElementById("termsWarning");
+  const slider = document.getElementById("roomDuration");
+  const durationText = document.getElementById("durationText");
+
+  function updateDuration(){
+    durationText.textContent = DURATIONS[slider.value].label;
+  }
+  updateDuration();
+  slider.oninput = updateDuration;
 
   createBtn.onclick = () => modal.classList.remove("hidden");
   cancelCreate.onclick = () => modal.classList.add("hidden");
@@ -209,9 +256,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
     }
 
     sessionStorage.setItem("ira_room_meta", JSON.stringify({
-      name: roomName.value,
-      desc: roomDesc.value,
-      duration: roomDuration.value
+      name: roomName.value.trim(),
+      desc: roomDesc.value.trim(),
+      duration: DURATIONS[slider.value].value,
+      createdAt: Date.now()
     }));
 
     goToRoom(makeRoomId());
