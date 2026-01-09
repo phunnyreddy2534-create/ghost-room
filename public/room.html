@@ -4,175 +4,61 @@
 <meta charset="UTF-8">
 <title>IRA Room</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <link rel="stylesheet" href="style.css">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
+<script src="/config.js"></script>
 </head>
 
 <body>
 
 <header class="room-header">
-  <div class="header-left">
-    <svg class="ira-logo" viewBox="0 0 100 100">
-      <defs>
-        <linearGradient id="iraGlow" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#6F7CFF"/>
-          <stop offset="100%" stop-color="#8E97FF"/>
-        </linearGradient>
-      </defs>
-      <circle cx="50" cy="50" r="42"
-        fill="none"
-        stroke="url(#iraGlow)"
-        stroke-width="4"
-        id="expiryRing"/>
-      <path d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
-        fill="none"
-        stroke="url(#iraGlow)"
-        stroke-width="3"
-        stroke-linecap="round"/>
-    </svg>
-    <span class="logo-text">IRA</span>
-  </div>
-  <button id="menuBtn" class="menu-btn">☰</button>
+  <span class="logo-text">IRA</span>
+  <button id="menuBtn">☰</button>
 </header>
 
 <main class="messages" id="messages">
   <div class="system">You are anonymous here.</div>
-  <div class="system" id="emptyHint">This room is quiet.</div>
 </main>
 
-<footer class="input-bar" id="inputBar">
-  <input id="msgInput" placeholder="Type without being known…" autocomplete="off">
+<footer class="input-bar">
+  <input id="msgInput" placeholder="Type without being known…">
   <button id="sendBtn" class="primary-btn">Send</button>
 </footer>
 
 <div id="menuOverlay" class="menu-overlay">
   <div class="menu">
-    <div class="menu-item" id="shareBtn">🔗 Share quietly</div>
-    <div class="menu-item danger" id="exitBtn">🗑️ Leave room</div>
+    <div class="menu-item" id="exitBtn">Leave room</div>
   </div>
 </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", async () => {
+<script type="module">
+import { initMessages } from "./components/messages.js";
 
-  const supabase = window.supabase.createClient(
-    IRA_CONFIG.SUPABASE_URL,
-    IRA_CONFIG.SUPABASE_ANON_KEY
-  );
+const supabase = window.supabase.createClient(
+  IRA_CONFIG.SUPABASE_URL,
+  IRA_CONFIG.SUPABASE_ANON_KEY
+);
 
-  const roomCode = new URLSearchParams(location.search).get("room");
-  if (!roomCode) return location.href = "/";
+const roomCode = new URLSearchParams(location.search).get("room");
+if (!roomCode) location.href="/";
 
-  const messagesEl = document.getElementById("messages");
-  const input = document.getElementById("msgInput");
-  const sendBtn = document.getElementById("sendBtn");
-  const ring = document.getElementById("expiryRing");
-  const inputBar = document.getElementById("inputBar");
-  const emptyHint = document.getElementById("emptyHint");
+const { data: room } = await supabase
+  .from("rooms")
+  .select("*")
+  .eq("room_code", roomCode)
+  .maybeSingle();
 
-  /* ===== VALIDATE ROOM ===== */
-  let room;
-  try {
-    const res = await supabase
-      .from("rooms")
-      .select("*")
-      .eq("room_code", roomCode)
-      .single();
-    room = res.data;
-  } catch {
-    document.body.innerHTML = `
-      <div style="height:100vh;display:flex;align-items:center;justify-content:center;
-      background:#0A0B14;color:white;text-align:center">
-        <div>
-          <div style="opacity:.6">This room no longer exists.</div>
-          <button class="primary-btn" style="margin-top:24px"
-            onclick="location.href='/'">Go Home</button>
-        </div>
-      </div>`;
-    return;
-  }
+if (!room){
+  document.body.innerHTML = "<h2>Room does not exist</h2>";
+  throw new Error("Invalid room");
+}
 
-  /* ===== LOAD MESSAGES ===== */
-  async function loadMessages() {
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("room_code", roomCode)
-      .order("created_at", { ascending: true });
+initMessages(roomCode);
 
-    data?.forEach(renderMessage);
-  }
+document.getElementById("menuBtn").onclick = () =>
+  document.getElementById("menuOverlay").style.display="block";
 
-  function renderMessage(m) {
-    emptyHint?.remove();
-    const d = document.createElement("div");
-    d.className = "msg other";
-    d.textContent = m.content;
-    messagesEl.appendChild(d);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  /* ===== REALTIME ===== */
-  supabase
-    .channel("room-" + roomCode)
-    .on("postgres_changes", {
-      event: "INSERT",
-      schema: "public",
-      table: "messages",
-      filter: `room_code=eq.${roomCode}`
-    }, payload => renderMessage(payload.new))
-    .subscribe();
-
-  /* ===== SEND ===== */
-  sendBtn.onclick = async () => {
-    const text = input.value.trim();
-    if (!text) return;
-
-    emptyHint?.remove();
-    input.value = "";
-
-    await supabase.from("messages").insert({
-      room_code: roomCode,
-      content: text
-    });
-  };
-
-  /* ===== EXPIRY ===== */
-  const expiresAt = new Date(room.expires_at).getTime();
-  const createdAt = new Date(room.created_at).getTime();
-  const durationMs = expiresAt - createdAt;
-
-  setInterval(() => {
-    const remaining = expiresAt - Date.now();
-    ring.style.opacity = Math.max(remaining / durationMs, 0.15);
-    if (remaining <= 0) {
-      inputBar.style.pointerEvents = "none";
-      inputBar.style.opacity = "0.3";
-    }
-  }, 1000);
-
-  /* ===== MENU ===== */
-  const menuOverlay = document.getElementById("menuOverlay");
-  document.getElementById("menuBtn").onclick = () =>
-    menuOverlay.style.display = "block";
-
-  menuOverlay.onclick = e => {
-    if (e.target === menuOverlay) menuOverlay.style.display = "none";
-  };
-
-  document.getElementById("exitBtn").onclick = () => location.href = "/";
-  document.getElementById("shareBtn").onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(location.href);
-      alert("Link copied");
-    } catch {}
-  };
-
-  loadMessages();
-});
+document.getElementById("exitBtn").onclick = () => location.href="/";
 </script>
 
 </body>
