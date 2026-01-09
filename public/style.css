@@ -432,3 +432,8 @@ textarea{ resize:none }
   gap:12px;
   margin-top:18px;
 }
+.terms-warning{
+  color:#ff9b9b;
+  font-size:13px;
+  margin-top:8px;
+}
