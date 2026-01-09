@@ -1,83 +1,65 @@
-import { supabase } from "../services/supabase.js";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-export function initMessages() {
-  const roomCode = new URLSearchParams(location.search).get("room");
+const supabase = createClient(
+  window.IRA_CONFIG.SUPABASE_URL,
+  window.IRA_CONFIG.SUPABASE_ANON_KEY
+);
+
+let roomCode;
+let channel;
+
+export function initMessages(validRoomCode){
+  roomCode = validRoomCode;
+
   const messagesEl = document.getElementById("messages");
   const input = document.getElementById("msgInput");
   const sendBtn = document.getElementById("sendBtn");
-  const emptyHint = document.getElementById("emptyHint");
 
-  if (!roomCode || !sendBtn || !input) {
-    console.error("Missing room or UI elements");
-    return;
-  }
+  sendBtn.onclick = sendMessage;
+  input.onkeydown = e => e.key === "Enter" && sendMessage();
 
-  /* ===== LOAD EXISTING MESSAGES ===== */
-  async function loadMessages() {
-    const { data, error } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("room_code", roomCode)
-      .order("created_at", { ascending: true });
+  loadHistory();
+  subscribe();
 
-    if (error) {
-      console.error("Load messages error:", error);
-      return;
-    }
-
-    if (data.length > 0) {
-      emptyHint.style.display = "none";
-    }
-
-    data.forEach(addMessage);
-  }
-
-  /* ===== ADD MESSAGE TO UI ===== */
-  function addMessage(msg) {
-    emptyHint.style.display = "none";
-
-    const div = document.createElement("div");
-    div.className = "message";
-    div.textContent = msg.content;
-
-    messagesEl.appendChild(div);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  /* ===== SEND MESSAGE ===== */
-  sendBtn.onclick = async () => {
+  async function sendMessage(){
     const text = input.value.trim();
     if (!text) return;
 
     input.value = "";
 
-    const { error } = await supabase.from("messages").insert({
+    await supabase.from("messages").insert({
       room_code: roomCode,
       content: text
     });
+  }
 
-    if (error) {
-      console.error("Insert failed:", error);
-      alert("Message failed to send");
-    }
-  };
+  function render(msg){
+    const d = document.createElement("div");
+    d.className = "msg other";
+    d.textContent = msg.content;
+    messagesEl.appendChild(d);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
 
-  /* ===== REALTIME ===== */
-  supabase
-    .channel(`room-${roomCode}`)
-    .on(
-      "postgres_changes",
-      {
+  async function loadHistory(){
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("room_code", roomCode)
+      .order("created_at");
+
+    data?.forEach(render);
+  }
+
+  function subscribe(){
+    channel = supabase
+      .channel(`room-${roomCode}`)
+      .on("postgres_changes", {
         event: "INSERT",
         schema: "public",
         table: "messages",
-        filter: `room_code=eq.${encodeURIComponent(roomCode)}`
-      },
-      payload => {
-        addMessage(payload.new);
-      }
-    )
-    .subscribe();
-
-  loadMessages();
+        filter: `room_code=eq.${roomCode}`
+      }, payload => render(payload.new))
+      .subscribe();
+  }
 }
