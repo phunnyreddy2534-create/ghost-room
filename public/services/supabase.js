@@ -1,7 +1,6 @@
-// services/supabase.js
-const { createClient } = window.supabase;
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-window.IRA_DB = createClient(
+export const supabase = createClient(
   window.IRA_CONFIG.SUPABASE_URL,
   window.IRA_CONFIG.SUPABASE_ANON_KEY
 );
