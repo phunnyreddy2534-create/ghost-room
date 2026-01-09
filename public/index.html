@@ -63,7 +63,7 @@
 .slider-wrap{
   background:#141633;
   border-radius:16px;
-  padding:16px 14px 18px;
+  padding:16px 14px 22px;
   position:relative;
 }
 
@@ -79,7 +79,7 @@ input[type="range"]{width:100%}
 
 .slider-bubble{
   position:absolute;
-  top:-32px;
+  top:-26px;
   transform:translateX(-50%);
   background:#1f235a;
   color:#9fa7ff;
@@ -88,6 +88,12 @@ input[type="range"]{width:100%}
   font-size:13px;
   white-space:nowrap;
   pointer-events:none;
+  opacity:0;
+  transition:opacity .15s ease, transform .15s ease;
+}
+.slider-bubble.active{
+  opacity:1;
+  transform:translateX(-50%) translateY(-4px);
 }
 
 .agree{
@@ -154,10 +160,8 @@ fill="none" stroke="#8E97FF" stroke-width="3" stroke-linecap="round"/>
 <div class="field">
 <span>How long should this room exist?</span>
 <div class="slider-wrap">
-<div class="slider-label">
-<span>Short</span><span>Long</span>
-</div>
-<div id="timeBubble" class="slider-bubble">30 minutes</div>
+<div class="slider-label"><span>Short</span><span>Long</span></div>
+<div id="timeBubble" class="slider-bubble"></div>
 <input type="range" id="roomDuration" min="0" max="8" step="1" value="3">
 </div>
 </div>
@@ -218,13 +222,21 @@ const TIMES=[
 const qs=id=>document.getElementById(id);
 const slider=qs("roomDuration"),bubble=qs("timeBubble");
 
-function updateSlider(){
-const d=TIMES[slider.value];
-bubble.textContent=d.t;
-bubble.style.left=`${(slider.value/8)*100}%`;
-bubble.style.background=d.c;
+function updateBubble(){
+  const d=TIMES[slider.value];
+  const percent = slider.value / slider.max;
+  bubble.textContent=d.t;
+  bubble.style.left = `${percent * slider.offsetWidth}px`;
+  bubble.style.background=d.c;
 }
-updateSlider(); slider.oninput=updateSlider;
+
+slider.addEventListener("pointerdown",()=>{
+  bubble.classList.add("active");
+  updateBubble();
+});
+slider.addEventListener("input",updateBubble);
+slider.addEventListener("pointerup",()=>bubble.classList.remove("active"));
+slider.addEventListener("touchend",()=>bubble.classList.remove("active"));
 
 qs("createBtn").onclick=()=>qs("createRoomModal").classList.remove("hidden");
 qs("cancelCreate").onclick=()=>qs("createRoomModal").classList.add("hidden");
