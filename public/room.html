@@ -55,124 +55,124 @@
   </div>
 </div>
 
-<script type="module">
-  import { initMessages } from "./components/messages.js";
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
 
-  document.addEventListener("DOMContentLoaded", async () => {
+  const supabase = window.supabase.createClient(
+    IRA_CONFIG.SUPABASE_URL,
+    IRA_CONFIG.SUPABASE_ANON_KEY
+  );
 
-    const supabase = window.supabase.createClient(
-      IRA_CONFIG.SUPABASE_URL,
-      IRA_CONFIG.SUPABASE_ANON_KEY
-    );
+  const roomCode = new URLSearchParams(location.search).get("room");
+  if (!roomCode) return location.href = "/";
 
-    const roomCode = new URLSearchParams(location.search).get("room");
-    const inputBar = document.getElementById("inputBar");
-    const ring = document.getElementById("expiryRing");
+  const messagesEl = document.getElementById("messages");
+  const input = document.getElementById("msgInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const ring = document.getElementById("expiryRing");
+  const inputBar = document.getElementById("inputBar");
+  const emptyHint = document.getElementById("emptyHint");
 
-    if (!roomCode) {
-      location.href = "/";
-      return;
-    }
-
-    /* ===== HARD ROOM VALIDATION ===== */
-    let room;
-    try {
-      const res = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("room_code", roomCode)
-        .single();
-
-      room = res.data;
-    } catch {
-      document.body.innerHTML = `
-        <div style="
-          height:100vh;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          background:#0A0B14;
-          color:white;
-          text-align:center">
-          <div>
-            <div style="opacity:.6">This room no longer exists.</div>
-            <button class="primary-btn"
-              style="margin-top:24px"
-              onclick="location.href='/'">
-              Go Home
-            </button>
-          </div>
+  /* ===== VALIDATE ROOM ===== */
+  let room;
+  try {
+    const res = await supabase
+      .from("rooms")
+      .select("*")
+      .eq("room_code", roomCode)
+      .single();
+    room = res.data;
+  } catch {
+    document.body.innerHTML = `
+      <div style="height:100vh;display:flex;align-items:center;justify-content:center;
+      background:#0A0B14;color:white;text-align:center">
+        <div>
+          <div style="opacity:.6">This room no longer exists.</div>
+          <button class="primary-btn" style="margin-top:24px"
+            onclick="location.href='/'">Go Home</button>
         </div>
-      `;
-      return;
-    }
+      </div>`;
+    return;
+  }
 
-    /* ===== EXPIRY ===== */
-    const createdAt = new Date(room.created_at).getTime();
-    const expiresAt = new Date(room.expires_at).getTime();
-    const durationMs = expiresAt - createdAt;
+  /* ===== LOAD MESSAGES ===== */
+  async function loadMessages() {
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("room_code", roomCode)
+      .order("created_at", { ascending: true });
 
-    let ended = false;
+    data?.forEach(renderMessage);
+  }
 
-    function endRoom(text) {
-      if (ended) return;
-      ended = true;
+  function renderMessage(m) {
+    emptyHint?.remove();
+    const d = document.createElement("div");
+    d.className = "msg other";
+    d.textContent = m.content;
+    messagesEl.appendChild(d);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
 
-      inputBar.style.opacity = "0.3";
+  /* ===== REALTIME ===== */
+  supabase
+    .channel("room-" + roomCode)
+    .on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "messages",
+      filter: `room_code=eq.${roomCode}`
+    }, payload => renderMessage(payload.new))
+    .subscribe();
+
+  /* ===== SEND ===== */
+  sendBtn.onclick = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+
+    emptyHint?.remove();
+    input.value = "";
+
+    await supabase.from("messages").insert({
+      room_code: roomCode,
+      content: text
+    });
+  };
+
+  /* ===== EXPIRY ===== */
+  const expiresAt = new Date(room.expires_at).getTime();
+  const createdAt = new Date(room.created_at).getTime();
+  const durationMs = expiresAt - createdAt;
+
+  setInterval(() => {
+    const remaining = expiresAt - Date.now();
+    ring.style.opacity = Math.max(remaining / durationMs, 0.15);
+    if (remaining <= 0) {
       inputBar.style.pointerEvents = "none";
-
-      const overlay = document.createElement("div");
-      overlay.className = "room-ended";
-      overlay.innerHTML = `
-        <div style="opacity:.6">${text}</div>
-        <button class="primary-btn"
-          style="margin-top:24px"
-          onclick="location.href='/'">
-          Go Home
-        </button>
-      `;
-      document.body.appendChild(overlay);
+      inputBar.style.opacity = "0.3";
     }
+  }, 1000);
 
-    setInterval(() => {
-      const remaining = expiresAt - Date.now();
-      const progress = Math.max(remaining / durationMs, 0);
-      ring.style.opacity = Math.max(progress, 0.15);
+  /* ===== MENU ===== */
+  const menuOverlay = document.getElementById("menuOverlay");
+  document.getElementById("menuBtn").onclick = () =>
+    menuOverlay.style.display = "block";
 
-      if (remaining <= 0) {
-        endRoom("This room has faded.");
-      }
-    }, 1000);
+  menuOverlay.onclick = e => {
+    if (e.target === menuOverlay) menuOverlay.style.display = "none";
+  };
 
-    /* ===== MENU ===== */
-    const menuOverlay = document.getElementById("menuOverlay");
+  document.getElementById("exitBtn").onclick = () => location.href = "/";
+  document.getElementById("shareBtn").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      alert("Link copied");
+    } catch {}
+  };
 
-    document.getElementById("menuBtn").onclick = () =>
-      menuOverlay.style.display = "block";
-
-    menuOverlay.onclick = e => {
-      if (e.target === menuOverlay) {
-        menuOverlay.style.display = "none";
-      }
-    };
-
-    document.getElementById("exitBtn").onclick = () =>
-      location.href = "/";
-
-    document.getElementById("shareBtn").onclick = async () => {
-      try {
-        if (navigator.share) {
-          await navigator.share({ title: "IRA Room", url: location.href });
-        } else {
-          await navigator.clipboard.writeText(location.href);
-          alert("Room link copied");
-        }
-      } catch {}
-    };
-
-    /* ===== INIT CHAT ONLY AFTER VALIDATION ===== */
-    initMessages();
-  });
+  loadMessages();
+});
 </script>
 
 </body>
