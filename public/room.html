@@ -7,7 +7,6 @@
 
 <link rel="stylesheet" href="style.css">
 
-<!-- Supabase + Config -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 </head>
@@ -55,11 +54,7 @@
 
 <!-- ================= INPUT ================= -->
 <footer class="input-bar" id="inputBar">
-  <input
-    id="msgInput"
-    placeholder="Type without being known…"
-    autocomplete="off"
-  />
+  <input id="msgInput" placeholder="Type without being known…" autocomplete="off" />
   <button id="sendBtn" class="primary-btn">Send</button>
 </footer>
 
@@ -77,16 +72,6 @@
 
   document.addEventListener("DOMContentLoaded", async () => {
 
-    /* ================= SESSION ID ================= */
-    const SESSION_ID =
-      sessionStorage.getItem("ira_session") ||
-      (() => {
-        const id = crypto.randomUUID();
-        sessionStorage.setItem("ira_session", id);
-        return id;
-      })();
-
-    /* ================= SUPABASE ================= */
     const supabase = window.supabase.createClient(
       IRA_CONFIG.SUPABASE_URL,
       IRA_CONFIG.SUPABASE_ANON_KEY
@@ -94,71 +79,52 @@
 
     const roomCode = new URLSearchParams(location.search).get("room");
     const inputBar = document.getElementById("inputBar");
+    const ring = document.getElementById("expiryRing");
 
     if (!roomCode) {
       location.href = "/";
       return;
     }
 
-    /* ================= ROOM VALIDATION ================= */
-    const { data: room, error } = await supabase
+    /* ================= ROOM CHECK ================= */
+    const { data: room } = await supabase
       .from("rooms")
       .select("*")
       .eq("room_code", roomCode)
-      .single();
+      .maybeSingle();
 
-    if (error || !room) {
-      document.body.innerHTML = `
-        <div style="
-          height:100vh;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          background:#0A0B14;
-          color:white;
-          text-align:center">
-          <div>
-            <div style="opacity:.6">This room no longer exists.</div>
-            <button class="primary-btn"
-              style="margin-top:24px"
-              onclick="location.href='/'">
-              Go Home
-            </button>
-          </div>
-        </div>
-      `;
+    if (!room) {
+      showEnded("This room no longer exists.");
       return;
     }
 
-    /* ================= EXPIRY ================= */
-    const createdAt = new Date(room.created_at).getTime();
+    /* ================= EXPIRY SAFE LOGIC ================= */
     const expiresAt = new Date(room.expires_at).getTime();
-    const durationMs = expiresAt - createdAt;
-    const ring = document.getElementById("expiryRing");
+    const durationMs = Math.max(
+      expiresAt - new Date(room.created_at).getTime(),
+      30 * 60 * 1000
+    );
 
     let ended = false;
 
-    async function endRoom() {
+    function showEnded(text) {
       if (ended) return;
       ended = true;
 
-      inputBar.style.opacity = .3;
+      inputBar.style.opacity = "0.3";
       inputBar.style.pointerEvents = "none";
 
-      await supabase.from("messages").delete().eq("room_code", roomCode);
-      await supabase.from("rooms").delete().eq("room_code", roomCode);
-
-      const end = document.createElement("div");
-      end.className = "room-ended";
-      end.innerHTML = `
-        <div style="opacity:.6">This room has faded.</div>
+      const overlay = document.createElement("div");
+      overlay.className = "room-ended";
+      overlay.innerHTML = `
+        <div style="opacity:.6">${text}</div>
         <button class="primary-btn"
           style="margin-top:24px"
           onclick="location.href='/'">
-          Leave quietly
+          Go Home
         </button>
       `;
-      document.body.appendChild(end);
+      document.body.appendChild(overlay);
     }
 
     setInterval(() => {
@@ -167,7 +133,7 @@
       ring.style.opacity = Math.max(progress, 0.15);
 
       if (remaining <= 0) {
-        endRoom();
+        showEnded("This room has faded.");
       }
     }, 1000);
 
@@ -199,7 +165,7 @@
       } catch {}
     };
 
-    /* ================= INIT CHAT ================= */
+    /* ================= CHAT ================= */
     initMessages();
   });
 </script>
