@@ -1,263 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
+<meta charset="UTF-8">
 <title>IRA — Silent Anonymous Rooms</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="theme-color" content="#141633" />
-
-<link rel="stylesheet" href="style.css" />
-
-<link rel="manifest" href="/manifest.json" />
-<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
-<style>
-/* ===== Splash ===== */
-#appSplash{
-  position:fixed; inset:0;
-  background:radial-gradient(circle at top,#161844,#0A0B14 70%);
-  display:flex; align-items:center; justify-content:center;
-  z-index:9999;
-  animation:fadeOut .8s ease forwards;
-  animation-delay:2.4s;
-}
-@keyframes fadeOut{to{opacity:0;visibility:hidden}}
-
-.hero-title{font-size:36px;line-height:1.15}
-
-/* ===== Modal ===== */
-.modal{
-  position:fixed; inset:0;
-  background:rgba(0,0,0,.45);
-  backdrop-filter:blur(6px);
-  display:flex; align-items:center; justify-content:center;
-  z-index:3000;
-}
-.hidden{display:none}
-
-.glass-card{
-  width:min(92%,420px);
-  background:rgba(20,22,45,.6);
-  backdrop-filter:blur(18px);
-  border-radius:22px;
-  padding:22px;
-  box-shadow:0 20px 60px rgba(0,0,0,.45);
-}
-
-.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
-.field span{font-size:13px;color:rgba(255,255,255,.7)}
-
-.field input,.field textarea{
-  background:#141633;
-  border:none;
-  border-radius:14px;
-  padding:12px 14px;
-  color:white;
-  font-size:14px;
-  outline:none;
-}
-
-/* ===== Slider ===== */
-.slider-wrap{
-  background:#141633;
-  border-radius:16px;
-  padding:16px 14px 22px;
-  position:relative;
-}
-
-.slider-label{
-  display:flex;
-  justify-content:space-between;
-  font-size:13px;
-  color:rgba(255,255,255,.6);
-  margin-bottom:8px;
-}
-
-input[type="range"]{width:100%}
-
-.slider-bubble{
-  position:absolute;
-  top:-26px;
-  transform:translateX(-50%);
-  background:#1f235a;
-  color:#9fa7ff;
-  padding:4px 10px;
-  border-radius:12px;
-  font-size:13px;
-  white-space:nowrap;
-  pointer-events:none;
-  opacity:0;
-  transition:opacity .15s ease, transform .15s ease;
-}
-.slider-bubble.active{
-  opacity:1;
-  transform:translateX(-50%) translateY(-4px);
-}
-
-.agree{
-  display:flex; gap:10px;
-  font-size:13px;
-  color:rgba(255,255,255,.7);
-  margin:14px 0;
-}
-
-.card-actions{display:flex;gap:12px;margin-top:18px}
-.primary-btn[disabled]{opacity:.5;pointer-events:none}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/config.js"></script>
 </head>
 
 <body>
 
-<!-- SPLASH -->
-<div id="appSplash">
-<svg viewBox="0 0 100 100" width="88">
-<circle cx="50" cy="50" r="42" fill="none" stroke="#8E97FF" stroke-width="4"/>
-<path d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
-fill="none" stroke="#6F7CFF" stroke-width="3" stroke-linecap="round"/>
-</svg>
-</div>
-
 <header class="top">
-<div class="logo">
-<svg class="ira-logo" viewBox="0 0 100 100">
-<circle cx="50" cy="50" r="42" fill="none" stroke="#6F7CFF" stroke-width="4"/>
-<path d="M20 52 C30 46 40 46 50 52 C60 58 70 58 80 52"
-fill="none" stroke="#8E97FF" stroke-width="3" stroke-linecap="round"/>
-</svg>
-<span class="logo-text">IRA</span>
-</div>
+  <div class="logo">
+    <span class="logo-text">IRA</span>
+  </div>
 </header>
 
 <main class="home">
-<h1 class="hero-title">Speak freely.</h1>
-<p class="hero-sub">Private rooms that appear quietly — and vanish without a trace.</p>
+  <h1>Speak freely.</h1>
+  <p class="hero-sub">Private rooms that vanish without a trace.</p>
 
-<div class="room-actions">
-<button class="primary-btn" id="createBtn">Create Room</button>
-<button class="secondary-btn" id="joinBtn">Join Room</button>
-</div>
+  <div class="room-actions">
+    <button class="primary-btn" id="createBtn">Create Room</button>
+    <button class="secondary-btn" id="joinBtn">Join Room</button>
+  </div>
 </main>
 
-<!-- CREATE ROOM MODAL -->
-<div id="createRoomModal" class="modal hidden">
-<div class="glass-card">
-
-<h2>Create a quiet room</h2>
-<p class="subtitle">Only people with the link can enter. This room will disappear.</p>
-
-<label class="field">
-<span>Room name (optional)</span>
-<input id="roomName" placeholder="A quiet space…" />
-</label>
-
-<label class="field">
-<span>Description (optional)</span>
-<textarea id="roomDesc" rows="3" placeholder="What is this room for?"></textarea>
-</label>
-
-<div class="field">
-<span>How long should this room exist?</span>
-<div class="slider-wrap">
-<div class="slider-label"><span>Short</span><span>Long</span></div>
-<div id="timeBubble" class="slider-bubble"></div>
-<input type="range" id="roomDuration" min="0" max="8" step="1" value="3">
-</div>
-</div>
-
-<label class="agree">
-<input type="checkbox" id="agreeCreate" />
-I understand this room will vanish and cannot be recovered
-</label>
-
-<div class="card-actions">
-<button class="ghost-btn" id="cancelCreate">Cancel</button>
-<button class="primary-btn" id="confirmCreate" disabled>Create & Enter</button>
-</div>
-
-</div>
-</div>
-
-<!-- JOIN ROOM MODAL -->
-<div id="joinRoomModal" class="modal hidden">
-<div class="glass-card">
-
-<h2>Join a room</h2>
-<p class="subtitle">You’ll remain anonymous.</p>
-
-<label class="field">
-<span>Room ID</span>
-<input id="joinRoomId" placeholder="Enter room code…" />
-</label>
-
-<button class="secondary-btn" disabled>📷 Scan QR (coming soon)</button>
-
-<label class="agree">
-<input type="checkbox" id="agreeJoin" />
-I understand this room may disappear at any time
-</label>
-
-<div class="card-actions">
-<button class="ghost-btn" id="cancelJoin">Cancel</button>
-<button class="primary-btn" id="confirmJoin" disabled>Enter quietly</button>
-</div>
-
-</div>
-</div>
-
 <script>
-const TIMES=[
-{t:"1 minute",v:1,c:"#6fd1ff"},
-{t:"5 minutes",v:5,c:"#6fd1ff"},
-{t:"15 minutes",v:15,c:"#8e97ff"},
-{t:"30 minutes",v:30,c:"#8e97ff"},
-{t:"1 hour",v:60,c:"#8e97ff"},
-{t:"3 hours",v:180,c:"#6b72ff"},
-{t:"6 hours",v:360,c:"#555dff"},
-{t:"12 hours",v:720,c:"#3f46cc"},
-{t:"20 hours",v:1200,c:"#2e347a"}
-];
+const supabase = window.supabase.createClient(
+  IRA_CONFIG.SUPABASE_URL,
+  IRA_CONFIG.SUPABASE_ANON_KEY
+);
 
-const qs=id=>document.getElementById(id);
-const slider=qs("roomDuration"),bubble=qs("timeBubble");
-
-function updateBubble(){
-  const d=TIMES[slider.value];
-  const percent = slider.value / slider.max;
-  bubble.textContent=d.t;
-  bubble.style.left = `${percent * slider.offsetWidth}px`;
-  bubble.style.background=d.c;
+function generateRoomCode(){
+  return Math.random().toString(36).slice(2,9);
 }
 
-slider.addEventListener("pointerdown",()=>{
-  bubble.classList.add("active");
-  updateBubble();
-});
-slider.addEventListener("input",updateBubble);
-slider.addEventListener("pointerup",()=>bubble.classList.remove("active"));
-slider.addEventListener("touchend",()=>bubble.classList.remove("active"));
+document.getElementById("createBtn").onclick = async () => {
+  const roomCode = generateRoomCode();
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
 
-qs("createBtn").onclick=()=>qs("createRoomModal").classList.remove("hidden");
-qs("cancelCreate").onclick=()=>qs("createRoomModal").classList.add("hidden");
-qs("agreeCreate").onchange=e=>qs("confirmCreate").disabled=!e.target.checked;
+  const { error } = await supabase.from("rooms").insert({
+    room_code: roomCode,
+    expires_at: expiresAt.toISOString()
+  });
 
-qs("confirmCreate").onclick=()=>{
-sessionStorage.setItem("ira_room_meta",JSON.stringify({
-name:qs("roomName").value,
-desc:qs("roomDesc").value,
-duration:TIMES[slider.value].v,
-created:Date.now()
-}));
-location.href=`room.html?room=${Math.random().toString(36).slice(2,9)}`;
+  if (error) {
+    alert("Failed to create room");
+    return;
+  }
+
+  location.href = `/room.html?room=${roomCode}`;
 };
 
-qs("joinBtn").onclick=()=>qs("joinRoomModal").classList.remove("hidden");
-qs("cancelJoin").onclick=()=>qs("joinRoomModal").classList.add("hidden");
-qs("agreeJoin").onchange=e=>qs("confirmJoin").disabled=!e.target.checked;
-qs("confirmJoin").onclick=()=>{
-const id=qs("joinRoomId").value.trim();
-if(id) location.href=`room.html?room=${id}`;
+document.getElementById("joinBtn").onclick = async () => {
+  const code = prompt("Enter room code");
+  if (!code) return;
+
+  const { data } = await supabase
+    .from("rooms")
+    .select("room_code")
+    .eq("room_code", code)
+    .maybeSingle();
+
+  if (!data) {
+    alert("Room does not exist");
+    return;
+  }
+
+  location.href = `/room.html?room=${code}`;
 };
 </script>
 
