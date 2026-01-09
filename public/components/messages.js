@@ -1,5 +1,4 @@
 // components/messages.js
-
 import { supabase } from "../services/supabase.js";
 
 let roomCode = null;
@@ -8,6 +7,7 @@ let channel = null;
 const messagesEl = document.getElementById("messages");
 const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
+const emptyHint = document.getElementById("emptyHint");
 
 /* ------------------------------
    INIT
@@ -16,7 +16,8 @@ export function initMessages() {
   roomCode = new URLSearchParams(location.search).get("room");
 
   if (!roomCode) {
-    console.warn("No room code found");
+    alert("Invalid room link");
+    location.href = "/";
     return;
   }
 
@@ -71,7 +72,6 @@ function initRealtime() {
 --------------------------------*/
 function bindSend() {
   sendBtn.addEventListener("click", sendMessage);
-
   msgInput.addEventListener("keydown", e => {
     if (e.key === "Enter") sendMessage();
   });
@@ -98,12 +98,12 @@ async function sendMessage() {
    RENDER
 --------------------------------*/
 function renderMessage(message) {
+  emptyHint?.remove();
+
   const bubble = document.createElement("div");
-
-  bubble.className =
-    message.sender === "anon" ? "msg you" : "msg other";
-
+  bubble.className = "msg other";
   bubble.textContent = message.content;
+
   messagesEl.appendChild(bubble);
 }
 
@@ -112,14 +112,4 @@ function renderMessage(message) {
 --------------------------------*/
 function scrollBottom() {
   messagesEl.scrollTop = messagesEl.scrollHeight;
-}
-
-/* ------------------------------
-   CLEANUP (future use)
---------------------------------*/
-export function destroyMessages() {
-  if (channel) {
-    supabase.removeChannel(channel);
-    channel = null;
-  }
 }
