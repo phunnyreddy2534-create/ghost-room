@@ -5,6 +5,7 @@
 <title>IRA Room</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="style.css">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/config.js"></script>
 </head>
@@ -31,17 +32,20 @@
   </div>
 </div>
 
-<script type="module">
-import { initMessages } from "./components/messages.js";
-
+<script>
 const supabase = window.supabase.createClient(
   IRA_CONFIG.SUPABASE_URL,
   IRA_CONFIG.SUPABASE_ANON_KEY
 );
 
 const roomCode = new URLSearchParams(location.search).get("room");
-if (!roomCode) location.href="/";
+if (!roomCode) location.href = "/";
 
+const messagesEl = document.getElementById("messages");
+const input = document.getElementById("msgInput");
+const sendBtn = document.getElementById("sendBtn");
+
+/* ---- ROOM VALIDATION ---- */
 const { data: room } = await supabase
   .from("rooms")
   .select("*")
@@ -49,16 +53,62 @@ const { data: room } = await supabase
   .maybeSingle();
 
 if (!room){
-  document.body.innerHTML = "<h2>Room does not exist</h2>";
+  document.body.innerHTML = "<h2 style='text-align:center'>Room does not exist</h2>";
   throw new Error("Invalid room");
 }
 
-initMessages(roomCode);
+/* ---- SEND MESSAGE ---- */
+sendBtn.onclick = async () => {
+  const text = input.value.trim();
+  if (!text) return;
 
+  input.value = "";
+
+  await supabase.from("messages").insert({
+    room_code: roomCode,
+    content: text
+  });
+};
+
+/* ---- RENDER ---- */
+function render(msg){
+  const d = document.createElement("div");
+  d.className = "msg other";
+  d.textContent = msg.content;
+  messagesEl.appendChild(d);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+/* ---- LOAD HISTORY ---- */
+const { data: history } = await supabase
+  .from("messages")
+  .select("*")
+  .eq("room_code", roomCode)
+  .order("created_at");
+
+history?.forEach(render);
+
+/* ---- REALTIME ---- */
+supabase
+  .channel("room-" + roomCode)
+  .on(
+    "postgres_changes",
+    {
+      event: "INSERT",
+      schema: "public",
+      table: "messages",
+      filter: `room_code=eq.${roomCode}`
+    },
+    payload => render(payload.new)
+  )
+  .subscribe();
+
+/* ---- MENU ---- */
 document.getElementById("menuBtn").onclick = () =>
-  document.getElementById("menuOverlay").style.display="block";
+  document.getElementById("menuOverlay").style.display = "block";
 
-document.getElementById("exitBtn").onclick = () => location.href="/";
+document.getElementById("exitBtn").onclick = () =>
+  location.href = "/";
 </script>
 
 </body>
